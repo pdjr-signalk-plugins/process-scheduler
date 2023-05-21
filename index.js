@@ -37,7 +37,7 @@ const PLUGIN_SCHEMA = {
             "title": "Schedule task name",
             "type": "string"
           },  
-		  "enablingpaths": {
+		      "enablingpaths": {
             "title": "Notification paths which enable the schedule task",
             "type": "array",
             "default": [ { "path": "", "options": [ "enabled" ] } ],
@@ -45,8 +45,8 @@ const PLUGIN_SCHEMA = {
               "type": "object",
               "properties": {
                 "path": {
-			      "type": "string",
-			      "title": "path"
+			            "type": "string",
+			            "title": "path"
                 },
                 "options": {
                   "title": "",
@@ -59,7 +59,7 @@ const PLUGIN_SCHEMA = {
                 }
               }
             }
-		  },
+		      },
           "activities" : {
             "title": "Activities making up the schedule task",
             "type": "array",
@@ -108,81 +108,86 @@ module.exports = function(app) {
 	plugin.id = PLUGIN_ID;
 	plugin.name = PLUGIN_NAME;
 	plugin.description = PLUGIN_DESCRIPTION;
-    plugin.schema = PLUGIN_SCHEMA;
-    plugin.uiSchema = PLUGIN_UISCHEMA;
+  plugin.schema = PLUGIN_SCHEMA;
+  plugin.uiSchema = PLUGIN_UISCHEMA;
 
-    const log = new Log(plugin.id, { ncallback: app.setPluginStatus, ecallback: app.setPluginError });
-    const notification = new Notification(app, plugin.id);
-    const sleep = (waitTimeInMs) => new Promise(resolve => setTimeout(resolve, waitTimeInMs));
+  const log = new Log(plugin.id, { ncallback: app.setPluginStatus, ecallback: app.setPluginError });
+  const notification = new Notification(app, plugin.id);
+  const sleep = (waitTimeInMs) => new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 
-    // Filter out rules which are disabled and map monitored path values into
-    // a stream of comparator values where -1 = below low threshold, 1 = above
-    // high threshold and 0 = between threshold.  Eliminate duplicate values
-    // in this new stream and issue a notification based upon the resulting
-    // comparator.  
-    //  
+  // Filter out rules which are disabled and map monitored path values into
+  // a stream of comparator values where -1 = below low threshold, 1 = above
+  // high threshold and 0 = between threshold.  Eliminate duplicate values
+  // in this new stream and issue a notification based upon the resulting
+  // comparator.  
+  //  
 	plugin.start = function(options) {
-        if (Object.keys(options).length === 0) {
-            
-        }
-        if (options.tasks === undefined) {
-            log.N("no tasks are defined");
-        } else {
-            var enabledTasks = options.tasks.filter(p => (p.enablingpaths.filter(ep => ep.options.includes("enabled")).length > 0));
-            if (enabledTasks.length == 0) {
-                log.N("no tasks are enabled");
-            } else {
-                log.N("configuring scheduling for: " + enabledTasks.map(p => p.name).join(", "));
-        
-                enabledTasks.reduce((a, {
-                    name,
-                    enablingpaths,
-                    activities
-                }) => {
-                    var stream = Bacon.combineWith(orAll, enablingpaths.filter(v => v.options.includes("enabled")).map(v => app.streambundle.getSelfStream(v.path).skipDuplicates()));
-                    var child = child_process.fork(__dirname + "/task.js");
-                    child.on('message', (message) => {
-                        if (message.action == 1) {
-                            if (message.path != null) {
-                                log.N(name + ": " + message.name + ": issuing notification: " + message.path);
-                                notification.issue(message.path, "Scheduled ON event", { state: "alert" });
-                            }
-                        } else {
-                            if (message.path != null) {
-                                log.N(name + ": " + message.name + ": cancelling notification: " + message.path);
-                                notification.cancel(message.path);
-                            }
-                        }
-                    });
-                    child.on('exit', () => {
-                        log.N("stopping scheduling of: " + name);
-                        child = null;
-                    });
-
-                    a.push(stream.onValue(state => {
-                        switch (state) {
-                            case 1:
-                                log.N("starting scheduling of " + name);
-                                if (child != null) {
-                                    child.send({
-                                        "action": "START",
-                                        "activities": activities 
-                                    });
-                                }
-                                break;
-                            case 0:
-                                log.N("stopping scheduling of " + name);
-                                if (child != null) {
-                                    child.send({ "action": "STOP" });
-                                }
-                                break;
-                        }
-                    }));
-                    return(a);
-                }, []);
-            }
-	    }
+    
+    if (Object.keys(options).length === 0) {
+      options = OPTIONS_DEFAULT;
+      savePluginOptions(options, () => { log.N("saving default configuration"); });    
     }
+
+    if ((options.tasks) && (Array.isArray(options.tasks))) {
+      options.tasks = options.tasks.filter(p => (p.enablingpaths.filter(ep => ep.options.includes("enabled")).length > 0));
+      if (options.tasks.length > 0) {
+        if (options.tasks.length == 1) {
+          log.N("scheduling task '%s'", options.tasks[0].name);
+        } else {
+          log.N("scheduling multiple tasks (see log for details)");
+        }
+        
+        options.tasks.reduce((a, {
+          name,
+          enablingpaths,
+          activities
+        }) => {
+          var stream = Bacon.combineWith(orAll, enablingpaths.filter(v => v.options.includes("enabled")).map(v => app.streambundle.getSelfStream(v.path).skipDuplicates()));
+          var child = child_process.fork(__dirname + "/task.js");
+
+          child.on('message', (message) => {
+            if (message.action == 1) {
+              if (message.path != null) {
+                log.N(name + ": " + message.name + ": issuing notification: " + message.path);
+                notification.issue(message.path, "Scheduled ON event", { state: "alert" });
+              }
+            } else {
+              if (message.path != null) {
+                log.N(name + ": " + message.name + ": cancelling notification: " + message.path);
+                notification.cancel(message.path);
+              }
+            }
+          });
+
+          child.on('exit', () => {
+            log.N("stopping scheduling of: " + name);
+            child = null;
+          });
+
+          a.push(stream.onValue(state => {
+            switch (state) {
+              case 1:
+                log.N("starting scheduling of " + name);
+                if (child != null) {
+                  child.send({
+                    "action": "START",
+                    "activities": activities 
+                  });
+                }
+                break;
+              case 0:
+                log.N("stopping scheduling of " + name);
+                if (child != null) {
+                  child.send({ "action": "STOP" });
+                }
+                break;
+            }
+          }));
+          return(a);
+        }, []);
+      }
+	  }
+  }
 
 	plugin.stop = function() {
 		unsubscribes.forEach(f => f())
