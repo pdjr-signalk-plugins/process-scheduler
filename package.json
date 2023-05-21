@@ -22,6 +22,7 @@
   },
   "homepage": "https://github.com/pdjr-signalk/pdjr-skplugin-process-scheduler#readme",
   "dependencies": {
-    "baconjs": "^1.0.1"
+    "baconjs": "^1.0.1",
+    "sprintf-js": "^1.1.2"
   }
 }
