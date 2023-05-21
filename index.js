@@ -15,33 +15,105 @@
  */
 
 const Bacon = require('baconjs')
-const Schema = require('./lib/signalk-libschema/Schema.js');
+const child_process = require("child_process");
+
 const Log = require('./lib/signalk-liblog/Log.js');
 const Notification = require('./lib/signalk-libnotification/Notification.js');
 
-const PLUGIN_SCHEMA_FILE = __dirname + "/schema.json";
-const PLUGIN_UISCHEMA_FILE = __dirname + "/uischema.json";
+const PLUGIN_ID = "process-scheduler";
+const PLUGIN_NAME = "pdjr-skplugin-process-scheduler";
+const PLUGIN_DESCRIPTION = "Simple process scheduling";
+const PLUGIN_SCHEMA = {
+  "type": "object",
+  "properties": {
+    "tasks": {
+      "title": "Schedule tasks",
+      "type": "array",
+      "items": {
+        "title": "Task",
+        "type": "object",
+        "properties": {
+          "name": {
+            "title": "Schedule task name",
+            "type": "string"
+          },  
+		  "enablingpaths": {
+            "title": "Notification paths which enable the schedule task",
+            "type": "array",
+            "default": [ { "path": "", "options": [ "enabled" ] } ],
+            "items": {
+              "type": "object",
+              "properties": {
+                "path": {
+			      "type": "string",
+			      "title": "path"
+                },
+                "options": {
+                  "title": "",
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [ "enabled" ]
+                  },
+                  "uniqueItems": true
+                }
+              }
+            }
+		  },
+          "activities" : {
+            "title": "Activities making up the schedule task",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "title": "Activity name",
+                  "type": "string"
+                },
+                "path": {
+                  "title": "Process control notification path",
+                  "type": "string"
+                },
+                "delay": {
+                  "title": "delay (s)",
+                  "type": "number"
+                },
+                "duration": {
+                  "title": "duration (s)",
+                  "type": "number"
+                },
+                "iterate": {
+                  "title": "iterate (n)",
+                  "type": "number",
+                  "minimum": 1
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+};
+const PLUGIN_UISCHEMA = {};
+
+const OPTIONS_DEFAULT = {
+
+};
 
 module.exports = function(app) {
 	var plugin = {};
 	var unsubscribes = [];
 
-	plugin.id = "pdjr-skplugin-process-scheduler";
-	plugin.name = "Process scheduler";
-	plugin.description = "Schedule external processes from within Signal K";
+	plugin.id = PLUGIN_ID;
+	plugin.name = PLUGIN_NAME;
+	plugin.description = PLUGIN_DESCRIPTION;
+    plugin.schema = PLUGIN_SCHEMA;
+    plugin.uiSchema = PLUGIN_UISCHEMA;
 
     const log = new Log(plugin.id, { ncallback: app.setPluginStatus, ecallback: app.setPluginError });
     const notification = new Notification(app, plugin.id);
     const sleep = (waitTimeInMs) => new Promise(resolve => setTimeout(resolve, waitTimeInMs));
-    var child_process = require("child_process");
-
-	plugin.schema = function() {
-        return(Schema.createSchema(PLUGIN_SCHEMA_FILE).getSchema());
-	}
-
-	plugin.uiSchema = function() {
-        return(Schema.createSchema(PLUGIN_UISCHEMA_FILE).getSchema());
-	}
 
     // Filter out rules which are disabled and map monitored path values into
     // a stream of comparator values where -1 = below low threshold, 1 = above
@@ -50,6 +122,9 @@ module.exports = function(app) {
     // comparator.  
     //  
 	plugin.start = function(options) {
+        if (Object.keys(options).length === 0) {
+            
+        }
         if (options.tasks === undefined) {
             log.N("no tasks are defined");
         } else {
