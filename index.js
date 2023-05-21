@@ -98,7 +98,7 @@ const PLUGIN_SCHEMA = {
 const PLUGIN_UISCHEMA = {};
 
 const OPTIONS_DEFAULT = {
-
+  "tasks": []
 };
 
 module.exports = function(app) {
