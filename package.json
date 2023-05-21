@@ -3,26 +3,26 @@
   "version": "1.0.0",
   "description": "Simple process scheduling",
   "main": "index.js",
+  "signalk-plugin-enabled-by-default": true,
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/preeve9534/pdjr-skplugin-process-scheduler.git"
+    "url": "git+ssh://git@github.com/pdjr-signalk/pdjr-skplugin-process-scheduler.git"
   },
   "keywords": [
-    "signalk",
-    "process",
-    "scheduler",
-    "signalk-node-server-plugin"
+    "signalk-node-server-plugin",
+    "signalk-category-utility"
   ],
-  "author": "Paul Reeve",
+  "author": "Paul Reeve <preeve@pdjr.eu>",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/preeve9534/pdjr-skplugin-process-scheduler/issues"
+    "url": "https://github.com/pdjr-signalk/pdjr-skplugin-process-scheduler/issues"
   },
-  "homepage": "https://github.com/preeve9534/pdjr-skplugin-process-scheduler#readme",
+  "homepage": "https://github.com/pdjr-signalk/pdjr-skplugin-process-scheduler#readme",
   "dependencies": {
-    "baconjs": "^1.0.1"
+    "baconjs": "^1.0.1",
+    "sprintf-js": "^1.1.2"
   }
 }
