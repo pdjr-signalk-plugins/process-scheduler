@@ -1,87 +1,81 @@
 # pdjr-skplugin-process-scheduler
 
-This [Signal K Node Server](https://github.com/SignalK/signalk-server-node)
-plugin implements a simple process scheduler which uses the Signal K
-notification system as both its own control interface and as the instrument
-for operating external processes.
+## Description
 
-To achieve agency in the real world the scheduler is dependent upon other
-plugins which can map real world events into Signal K notifications and
-Signal K notifications into real world actions. 
+**pdjr-skplugin-process-scheduler** implements a simple process
+scheduler which manages an arbitrary number of user defined *task*s.
 
-__pdjr-skplugin-process-scheduler__ manages an arbitrary number of user defined
-_tasks_.
-A task is started by the appearance of a nominated ALERT notification in
-the Signal K self notification tree and is stopped by the removal of this
-notification. 
+A *task* is composed of a sequence of one or more activities.
 
-Functionally, a task is composed of one or more sequentially executed
-_activities_.
-Each activity can be configured to repeat an arbitrary number of times and is
-characterised by a _start event_ which occurs after some time _delay_ and and
-a subsequent _stop event_ which occurs when some _duration_ of time has
-elapsed since the start event.
-The start event is associated with the issuing of an ALERT notification onto
-the Signal K self notification tree and the stop event is associated with the
-removal of this notification.
-The resulting sequence of notification activity can be leveraged to control
-(typically start and stop) external, real world, processes.
+Each *activity* consists of an initial *delay* followed by a start
+event, an elapsed *duration* and finally a stop event.
+The activity can be *repeat*ed an arbitrary number of times or
+indefinitely.
+
+The start event is associated with either a PUT update to (1) on a
+Signal K switch path or the issuing of a notification on some Signal K
+notification path.
+
+The stop event is associated with either a PUT update to (0) on a
+Signal K switch path or the issuing or cancelling of a notification on
+some Signal K notification path.
+
+The resulting sequence of event activity can be leveraged to control
+external, real world, processes.
+
+Each *task* is triggered by the appearance of either a boolean true
+value on a Signal K switch path or of a notification, perhaps with a
+particular state, on a notification path.
+
+More complex trigger conditions can be implemented using an external
+plugin to raise and remove any necessary trigger.
 
 ## Example application
 
 Imagine a ship with an electrical lubrication pump that delivers grease
-directly to the propeller shaft bearing. 
+directly to the propeller shaft bearing.
 We want to ensure that the bearing is well greased at the beginning of every
 voyage and lightly greased periodically during the voyage.
 
 This requirement can be met by a "lubrication" task consisting of two
-activities: a "start" activity which runs once when the main engine is fired
-up and a subsequent "iterate" activity which runs repeatedly for as long
-as the engine is running.
+activities: a 'start' activity which runs once when the main engine is
+fired up and a subsequent 'iterate' activity which runs repeatedly for
+as long as the engine is running.
 The start event in both activities is used to issue a notification which
 signals that the lubrication pump should run.
 
-Controlling execution of the lubrication task is fairly straightforward: a
-plugin like
-[signalk-threshold-notifier](https://github.com/preeve9534/signalk-threshold-notifier/)
-can be used to emit an enabling notification when the engine ignition switch
-is in the RUN position.
-Modern engines with CAN interfaces into Signal K may support other ways of
-detecting engine state.
+Controlling execution of the lubrication task can be accomplished in
+many ways, the simplest is probably to sense the state of the engine
+ignition switch.
+Modern engines with CAN interfaces into Signal K may support other ways
+of detecting engine state.
 
-Controlling the lubrication pump itself involves mapping a  notification state
-into, say, an NMEA 2000 switchbank relay operation.
-This can be accomplished with a plugin like
-[signalk-switchbank](https://github.com/preeve9534/signalk-switchbank/). 
+The simplest control strategy for the lubrication pump involves
+directing PUT updates to a relay switch channel.
 
-The raw JSON configuration for a __pdjr-skplugin-process-scheduler__ instance that
-handles just a shaft librication task might look like this.
+The plugin configuration for handling just this shaft librication task
+might look like this.
 
 ```
 "configuration": {
   "tasks": [
     {
       "name": "shaft lubrication",
-      "enablingpaths": [
-        {
-          "path": "notifications.control.electrical.switches.0.11.state",
-          "options": [ "enabled" ]
-        }
-      ],
+      "controlpath": "electrical.switches.bank.0.11.state",
       "activities": [
         {
           "name": "start",
-          "path": "notifications.control.engine.0.shaft.lube",
+          "path": "electrical.switches.bank.26.5.state",
           "delay": 0,
-          "duration": 300,
+          "duration": 120,
           "iterate": 1
         },
         {
           "name": "iterate",
-          "path": "notifications.control.shaftlube",
+          "path": "electrical.switches.bank.26.5.state",
           "delay": 1800,
-          "duration": 60,
-          "iterate": 10000
+          "duration": 30,
+          "iterate": 0
         }
       ]
     }
@@ -89,110 +83,56 @@ handles just a shaft librication task might look like this.
 }
 ```
 
-Of course, __pdjr-skplugin-process-scheduler__ provides a convenient web interface
-for generation of its configuration files.
-## System requirements
+## Configuration
 
-__pdjr-skplugin-process-scheduler__ has no special system requirements.
-## Installation
+The plugin has the following configuration properties.
 
-Download and install __pdjr-skplugin-process-scheduler__ using the _Appstore_ link
-in your Signal K Node server console.
+| Property name | Value type | Value default | Description |
+| :------------ | :--------- | :------------ | :---------- |
+| tasks         | Array      | (none)        | Collection of *task* objects. |
 
-The plugin can also be downloaded from the
-[project homepage](https://github.com/preeve9534/pdjr-skplugin-process-scheduler)
-and installed using
-[these instructions](https://github.com/SignalK/signalk-server-node/blob/master/SERVERPLUGINS.md).
-## Usage
+Each *task* object has the following properties.
 
- __pdjr-skplugin-process-scheduler__ is configured through the Signal K Node server
-plugin configuration interface.
-Navigate to _Server_->_Plugin config_ and select the _Process scheduler_ tab.
+| Property name | Value type | Value default | Description |
+| :------------ | :--------- | :------------ | :---------- |
+| name          | String     | ''            | Name of the task (used in messaging and logging). |
+| controlpath   | String     | (none)        | Signal K key whose value triggers the task. |
+| activities    | Array      | (none)        | Collection of *activity* objects. |
 
-The plugin configuration will open and presents a list of all defined schedule
-tasks.
-Each task is represented by a closed tab; clicking on a tab will open the
-configuration page for the selected schedule task (see figure).
-New schedule tasks can be added by clicking the __[+]__ button and any existing,
-unwanted, schedule tasks can be deleted by clicking their adjacent __[x]__ button.
+There are two ways of specifying a *controlpath* key.
 
-![Configuration panel](readme/config.png)
+1. Use a switch path. Simply supply a path in the 'electrical.switches.'
+   tree which when on (1) will enable the task.
 
-Each schedule task definition consists of the following fields.
+2. Use a notification path. Supplying a notification path allows a task
+   to be controlled either by the presence/absense of a notification.
+   Supplying a path of the form  '*notification_path*[**:**_state_]'
+   allows control by the presence/absense of a particular notification
+   state.
 
-__Scheduled process name__  
-A required text value which names the schedule task.
-There is no default value.
+Each object in the *activities* array has the following properties.
 
-Enter here some text which identifies the task and which will make sense when
-it appears in system log file messages.
+| Property name | Value type | Value default | Description |
+| :------------ | :--------- | :------------ | :---------- |
+| path          | String     | (none)        | Signal K key to be updated when start and stop events occur. |
+| duration      | Number     | (none)        | Number seconds between activity start and stop events. |
+| name          | String     | ''            | Name of the activity (used in messaging and logging). |
+| delay         | Number     | 0             | Number of seconds before start event. |
+| repeat        | Number     | 1             | Number of times to repeat the activity (0 says forever). |
 
-__Notification paths which enable process scheduling__  
-A required list of notification paths and associated options each of which will
-act as a trigger for running the schedule task.
-There is no default.
+*path* can specify either a switch key or a notification key.
+A switch key will be set to 1 by the on event and to 0 by the off
+event.
+A simple notification key will result in a notification with state
+'normal' being issued by the on event and the notification being
+cancelled by the off event.
+A key of the form '*notification_path*__:__*state*' causes similar
+behaviour, but the notification issued by the on event will have the
+specified *state*.
+A key of the form '*notification_path*__:__*onstate*__:__*offstate*'
+will result in a persistent notification whose state is set to the
+specified values by the on and off events.
 
-__path__  
-A notification path.
+# Author
 
-__enabled__  
-A checkbox indicating whether or not the associated path is enabled as a trigger.
-Defaults to checked (true).
-
-At least one enabled notification path is required.
-
-__Notification path which enables process__  
-A required notification path which will be used to issue an ALERT notification
-when the schedule task requires the associated process to start.
-Any previously issued notification will be removed when the scheduler requires
-the associated process to stop.
-There is no default value.
-
-__Active process components__  
-A checkbox menu determining which phases of the schedule task should be
-implemented.
-Defaults to __start__ and __iterate__.
-
-__Options for start phasei__, __Options for iterate phase__ and __Options for end phase__  
-Entries below these headings specify the delay and duration times in seconds
-for execution of the process controlled by the schedule task within each
-phase.
-
-__delay__
-The number of seconds which should elapse before the controlled process
-is started.
-
-__duration__ 
-The number of seconds for which the controlled process should run.
-## Messages
-
-__pdjr-skplugin-process-scheduler__ issues the following message to the Signal K
-Node server console and system logging facility.
-
-__no processes are defined__  
-The plugin has initialised but no scheduling processes have been configured.
-
-__no processes are enabled__  
-The plugin has initialised and scheduled processes have been configured,
-but none of the processes can run because all enabling notification paths
-are disabled.
-
-__configuring scheduling for: _name__[__,__ _name_...]
-The plugin has initialised and has configured scheduling of the _name_d
-processes.
-
-__starting scheduling of: _name__
-An ALERT has been detected on one of the enabling notification paths for
-schedule task _name_.
-The schedule task will enter its start phase.
-
-__stopping scheduling of: _name__
-A non-ALERT has been detected on one of the enabling notification paths for
-schedule task _name_.
-The schedule task will enter its end phase (if any) and then stop.
-
-__starting: _name__
-Schedule task _name_ is issueing an ALERT notification for its controlled process. 
-
-__stopping: _name__
-Schedule task _name_ is cancelling any ALERT notification for its controlled process. 
+Paul Reeve <*preeve_at_pdjr_dot_eu*>
