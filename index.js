@@ -81,6 +81,7 @@ const PLUGIN_SCHEMA = {
 };
 const PLUGIN_UISCHEMA = {};
 
+const TASK_NAME_DEFAULT = "anonymous task";
 const ACTIVITY_DELAY_DEFAULT = 0;
 const ACTIVITY_REPEAT_DEFAULT = 1;
 
@@ -98,18 +99,17 @@ module.exports = function(app) {
   const notification = new Notification(app, plugin.id);
   const sleep = (waitTimeInMs) => new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 
-  // Filter out rules which are disabled and map monitored path values into
-  // a stream of comparator values where -1 = below low threshold, 1 = above
-  // high threshold and 0 = between threshold.  Eliminate duplicate values
-  // in this new stream and issue a notification based upon the resulting
-  // comparator.  
-  //  
 	plugin.start = function(options) {
     
     if (Object.keys(options).length > 0) {
       if ((options.tasks) && (Array.isArray(options.tasks)) && (options.tasks.length > 0)) {
 
-        // Filter, elaborate and validate the configuration
+        // Filter, elaborate and validate the configuration by:
+        // 1. tidying up task.name;
+        // 2. making a task.controlpathobject from task.controlpath;
+        // 3. elaborating each activity in the activity list.
+        // Unrecoverable validation errors throw an exception and the
+        // affected task is dropped.
         options.tasks = options.tasks.filter(task => {
           var matches;
           try {
@@ -135,7 +135,9 @@ module.exports = function(app) {
             }
 
             if ((task.activities) && (Array.isArray(task.activities)) && (task.activities.length > 0)) {
+              var activityindex = 0;
               task.activities.forEach(activity => {
+                activity.name = ((activity.name)?activity.name:ACTIVITY_NAME_DEFAULT) + "[" + activityindex++ + "]";
                 activity.delay = (activity.delay)?activity.delay:ACTIVITY_DELAY_DEFAULT;
                 activity.repeat = (activity.repeat)?activity.repeat:ACTIVITY_REPEAT_DEFAULT;
                 if (activity.path) {
@@ -177,6 +179,7 @@ module.exports = function(app) {
           }
         });
 
+        // We reach this point with a validated list of tasks...
         if (options.tasks.length > 0) {
 
           if (options.tasks.length == 1) {
@@ -185,7 +188,13 @@ module.exports = function(app) {
             log.N("scheduling multiple tasks (see log for details)");
           }
         
-          options.tasks.reduce((a, { name, controlpathobject, activities }) => {
+          // Subscribe to each tasks trigger stream, implement a child
+          // process for each task and handles state changes on the
+          // trigger.
+          unsubscribes = options.tasks.reduce((a, { name, controlpathobject, activities }) => {
+
+            // Get a trigger stream for the task controlpath that deals
+            // with switch and notification triggers.
             var stream = app.streambundle.getSelfStream(controlpathobject.path);
             switch (controlpathobject.type) {
               case 'switch':
@@ -200,8 +209,13 @@ module.exports = function(app) {
                 break;
             }
 
+            // Create a child process for executing the task's
+            // activities.
             var child = child_process.fork(__dirname + "/task.js");
 
+            // The child sends a message saying whether an activity
+            // should turn its output on or off, so we manage that her
+            // for both switch and notification outputs.
             child.on('message', (message) => {
               switch (message.action) {
                 case 1:
@@ -234,14 +248,14 @@ module.exports = function(app) {
             });
 
             child.on('exit', () => {
-            log.N("stopping scheduling of: " + name);
-            child = null;
+              log.N("stopping scheduling of: " + name);
+              child = null;
             });
 
             // Subscribe to the trigger <stream> and wait for the
-            // arrival of value saying whether to start or stop the
-            // task activities by asking the <child> process to do
-            // its job.
+            // arrival of values saying whether to start or stop task
+            // activities and respond by sending appropriate control
+            // messages to the child process.
             a.push(stream.skipDuplicates().onValue(state => {
               app.debug("received trigger %d for task '%s'", state, name);
               switch (state) {
@@ -271,18 +285,6 @@ module.exports = function(app) {
 		unsubscribes.forEach(f => f())
 		unsubscribes = []
 	}
-
-  /**
-   * Returns the logical OR of an arbitrary number of Signal K notification
-   * values where the value of the state field is interpreted as TRUE if
-   * equal to "alert", otherwise FALSE.
-   * returns: TRUE or FALSE
-   */
-  function orAll() {
-    var retval = false;
-    for (var i = 0; i < arguments.length; i++) { retval |= (arguments[i] === 1) };
-    return(retval);
-  }
 
 	return(plugin);
 }
