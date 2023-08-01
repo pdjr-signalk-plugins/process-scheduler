@@ -1,6 +1,6 @@
 {
   "name": "pdjr-skplugin-process-scheduler",
-  "version": "1.0.0",
+  "version": "2.1.0",
   "description": "Simple process scheduling",
   "main": "index.js",
   "signalk-plugin-enabled-by-default": true,
