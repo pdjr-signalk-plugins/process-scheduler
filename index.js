@@ -16,7 +16,7 @@
 
 const child_process = require("child_process");
 
-const MyApp = require('./lib/signalk-libapp.js');
+const MyApp = require('./lib/signalk-libapp/App.js');
 const Log = require('./lib/signalk-liblog/Log.js');
 
 const PLUGIN_ID = "process-scheduler";
