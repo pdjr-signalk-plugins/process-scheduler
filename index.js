@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-const Bacon = require('baconjs')
 const child_process = require("child_process");
 
+const MyApp = require('./lib/signalk-libapp.js');
 const Log = require('./lib/signalk-liblog/Log.js');
-const Notification = require('./lib/signalk-libnotification/Notification.js');
 
 const PLUGIN_ID = "process-scheduler";
 const PLUGIN_NAME = "pdjr-skplugin-process-scheduler";
@@ -37,7 +36,7 @@ const PLUGIN_SCHEMA = {
             "title": "Schedule task name",
             "type": "string"
           },  
-		      "controlpath": {
+		      "controlPath": {
             "title": "Path which starts and stops this task",
             "type": "string"
 		      },
@@ -74,7 +73,8 @@ const PLUGIN_SCHEMA = {
             }
           }
         }
-      }
+      },
+      "default": []
     }
   },
   "required": [ "tasks" ]
@@ -94,189 +94,203 @@ module.exports = function(app) {
 	plugin.description = PLUGIN_DESCRIPTION;
   plugin.schema = PLUGIN_SCHEMA;
   plugin.uiSchema = PLUGIN_UISCHEMA;
+  plugin.App = new MyApp(app);
 
   const log = new Log(plugin.id, { ncallback: app.setPluginStatus, ecallback: app.setPluginError });
-  const notification = new Notification(app, plugin.id);
-  const sleep = (waitTimeInMs) => new Promise(resolve => setTimeout(resolve, waitTimeInMs));
+  //const sleep = (waitTimeInMs) => new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 
 	plugin.start = function(options) {
-    
-    if (Object.keys(options).length > 0) {
-      if ((options.tasks) && (Array.isArray(options.tasks)) && (options.tasks.length > 0)) {
+    plugin.options = {};
+    plugin.options.tasks = (options.tasks)?options.tasks:plugin.schema.properties.tasks.default;
 
-        // Filter, elaborate and validate the configuration by:
-        // 1. tidying up task.name;
-        // 2. making a task.controlpathobject from task.controlpath;
-        // 3. elaborating each activity in the activity list.
-        // Unrecoverable validation errors throw an exception and the
-        // affected task is dropped.
-        options.tasks = options.tasks.filter(task => {
-          var matches;
-          try {
-            task.name = (task.name)?task.name:TASK_NAME_DEFAULT;
+    if ((Array.isArray(options.tasks)) && (options.tasks.length > 0)) {
 
-            if (task.controlpath) {
-              task.controlpathobject = {};
-              if (matches = task.controlpath.match(/^electrical\.switches\..*$/)) {
-                task.controlpathobject.type = 'switch';
-                task.controlpathobject.path = task.controlpath;
-                task.controlpathobject.onvalue = 1;
-              } else if ((matches = task.controlpath.match(/^notifications\.(.*)\:(.*)$/)) && (matches.length == 3)) {
-                task.controlpathobject.type = 'notification';
-                task.controlpathobject.path = 'notifications.' + matches[1];
-                task.controlpathobject.onstate = matches[2];
-              } else if ((matches = task.controlpathobject.match(/^notifications\.(.*)$/)) && (matches.length == 2)) {
-                task.controlpathobject.type = 'notification';
-                task.controlpathobject.path = 'notifications.' + matches[1];
-                task.controlpathobject.onstate = undefined;
-              } else {
-                throw new Error ("ignoring task with invalid enabling path");
-              }
-            }
+      // Filter, elaborate and validate the configuration by:
+      // 1. tidying up task.name;
+      // 2. making a task.controlpathobject from task.controlPath;
+      // 3. elaborating each activity in the activity list.
+      // Unrecoverable validation errors throw an exception and the
+      // affected task is dropped.
+      plugin.options.tasks = plugin.options.tasks.filter(task => {
+        var matches;
+        try {
+          task.name = (task.name)?task.name:TASK_NAME_DEFAULT;
 
-            if ((task.activities) && (Array.isArray(task.activities)) && (task.activities.length > 0)) {
-              var activityindex = 0;
-              task.activities.forEach(activity => {
-                activity.name = ((activity.name)?activity.name:ACTIVITY_NAME_DEFAULT) + "[" + activityindex++ + "]";
-                activity.delay = (activity.delay)?activity.delay:ACTIVITY_DELAY_DEFAULT;
-                activity.repeat = (activity.repeat)?activity.repeat:ACTIVITY_REPEAT_DEFAULT;
-                if (activity.path) {
-                  if ((matches = activity.path.match(/^electrical\.switches\.(.*)$/)) && (matches.length == 2)) {
-                    activity.type = 'switch';
-                    activity.path = activity.path;
-                    activity.onvalue = 1;
-                    activity.offvalue = 0;
-                  } else if ((matches = activity.path.match(/^notifications\.(.*)\:(.*)\:(.*)$/)) && (matches.length == 4)) {
-                    activity.type = 'notification';
-                    activity.path = 'notifications.' + matches[1];
-                    activity.onstate = matches[2];
-                    activity.offstate = matches[3];
-                  } else if ((matches = activity.path.match(/^notifications\.(.*)\:(.*)$/)) && (matches.length == 3)) {
-                    activity.type = 'notification';
-                    activity.path = 'notifications.' + matches[1];
-                    activity.onstate = matches[2];
-                    activity.offstate = 'normal';
-                  } else if ((matches = activity.path.match(/^notifications\.(.*)$/)) && (matches.length == 2)) {
-                    activity.type = 'notification';
-                    activity.path = 'notifications.' + matches[1];
-                    activity.onstate = 'normal';
-                    activity.offstate = undefined;
-                  } else {
-                    throw new Error("invalid control path (" + activity.path+ ")");
-                  }
-                } else {
-                  throw new Error("missing control path");
-                }
-                if (!activity.duration) throw new Error("duration not specified");
-              });
+          if (task.controlPath) {
+            task.controlpathobject = {};
+            if (matches = task.controlPath.match(/^electrical\.switches\..*$/)) {
+              task.controlpathobject.type = 'switch';
+              task.controlpathobject.path = task.controlpath;
+              task.controlpathobject.onvalue = 1;
+            } else if ((matches = task.controlPath.match(/^notifications\.(.*)\:(.*)$/)) && (matches.length == 3)) {
+              task.controlpathobject.type = 'notification';
+              task.controlpathobject.path = `notifications.${matches[1]}`;
+              task.controlpathobject.onstate = matches[2];
+            } else if ((matches = task.controlPath.match(/^notifications\.(.*)$/)) && (matches.length == 2)) {
+              task.controlpathobject.type = 'notification';
+              task.controlpathobject.path = `notifications.${matches[1]}`;
+              task.controlpathobject.onstate = undefined;
             } else {
-              throw new Error("no activities specified");
+              throw new Error ("ignoring task with invalid enabling path");
             }
-            return(true);
-          } catch(e) {
-            log.E("ignoring badly configured task '%s' (%s)", task.name, e, false);
-            return(false);
           }
-        });
 
-        // We reach this point with a validated list of tasks...
-        if (options.tasks.length > 0) {
-
-          if (options.tasks.length == 1) {
-            log.N("scheduling task '%s'", options.tasks[0].name);
-          } else {
-            log.N("scheduling multiple tasks (see log for details)");
-          }
-        
-          // Subscribe to each tasks trigger stream, implement a child
-          // process for each task and handles state changes on the
-          // trigger.
-          unsubscribes = options.tasks.reduce((a, { name, controlpathobject, activities }) => {
-
-            // Get a trigger stream for the task controlpath that deals
-            // with switch and notification triggers.
-            var stream = app.streambundle.getSelfStream(controlpathobject.path);
-            switch (controlpathobject.type) {
-              case 'switch':
-                ;
-                break;
-              case 'notification':
-                if (controlpathobject.onstate === undefined) {
-                  stream = stream.map(v = (v !== null)?1:0);
+          if ((task.activities) && (Array.isArray(task.activities)) && (task.activities.length > 0)) {
+            var activityindex = 0;
+            task.activities.forEach(activity => {
+              activity.name = ((activity.name)?activity.name:ACTIVITY_NAME_DEFAULT) + "[" + activityindex++ + "]";
+              activity.delay = (activity.delay)?activity.delay:ACTIVITY_DELAY_DEFAULT;
+              activity.repeat = (activity.repeat)?activity.repeat:ACTIVITY_REPEAT_DEFAULT;
+              if (activity.path) {
+                if ((matches = activity.path.match(/^electrical\.switches\.(.*)$/)) && (matches.length == 2)) {
+                  activity.type = 'switch';
+                  activity.path = activity.path;
+                  activity.onvalue = 1;
+                  activity.offvalue = 0;
+                } else if ((matches = activity.path.match(/^notifications\.(.*)\:(.*)\:(.*)$/)) && (matches.length == 4)) {
+                  activity.type = 'notification';
+                  activity.path = `notifications.${matches[1]}`;
+                  activity.onstate = matches[2];
+                  activity.offstate = matches[3];
+                } else if ((matches = activity.path.match(/^notifications\.(.*)\:(.*)$/)) && (matches.length == 3)) {
+                  activity.type = 'notification';
+                  activity.path = `notifications.${matches[1]}`;
+                  activity.onstate = matches[2];
+                  activity.offstate = 'normal';
+                } else if ((matches = activity.path.match(/^notifications\.(.*)$/)) && (matches.length == 2)) {
+                  activity.type = 'notification';
+                  activity.path = `notifications.${matches[1]}`;
+                  activity.onstate = 'normal';
+                  activity.offstate = undefined;
                 } else {
-                  strean = stream.map((s,v) => ((v == s)?1:0), controlpathobject.onstate);
+                  throw new Error(`invalid control path (${activity.path})`);
+                }
+              } else {
+                throw new Error("missing control path");
+              }
+              if (!activity.duration) throw new Error("duration not specified");
+            });
+          } else {
+            throw new Error("no activities specified");
+          }
+          return(true);
+        } catch(e) {
+          log.E(`ignoring badly configured task '${task.name}' (${e})`, false);
+          return(false);
+        }
+      });
+
+      // We reach this point with a validated list of tasks...
+      if (plugin.options.tasks.length > 0) {
+
+        if (plugin.options.tasks.length == 1) {
+          log.N(`scheduling task '${plugin.options.tasks[0].name}'`);
+        } else {
+          log.N("scheduling multiple tasks (see log for details)");
+        }
+        
+        // Subscribe to each tasks trigger stream, implement a child
+        // process for each task and handles state changes on the
+        // trigger.
+        unsubscribes = plugin.options.tasks.reduce((a, { name, controlpathobject, activities }) => {
+
+          // Get a trigger stream for the task controlpath that deals
+          // with switch and notification triggers.
+          var stream = app.streambundle.getSelfStream(controlpathobject.path);
+          switch (controlpathobject.type) {
+            case 'switch':
+              ;
+              break;
+            case 'notification':
+              if (controlpathobject.onstate === undefined) {
+                stream = stream.map(v = (v !== null)?1:0);
+              } else {
+                stream = stream.map((s,v) => ((v == s)?1:0), controlpathobject.onstate);
+              }
+              break;
+          }
+
+          // Create a child process for executing the task's
+          // activities.
+          var child = child_process.fork(`${__dirname}/task.js`);
+
+          // The child sends a message saying whether an activity
+          // should turn its output on or off, so we manage that her
+          // for both switch and notification outputs.
+          child.on('message', (message) => {
+            switch (message.action) {
+              case 1:
+                switch (message.activity.type) {
+                  case 'switch':
+                    app.putSelfPath(message.activity.path, 1, (d) => app.debug(`put response: ${JSON.stringify(d)}`));
+                    break;
+                  case 'notification':
+                    plugin.App.notify(
+                      message.activity.path, 
+                      {
+                        state: message.activity.onstate,
+                        method: [],
+                        message: 'Scheduler ON event'
+                      },
+                      plugin.id
+                    );
+                    break;
+                  default:
+                    break;
+                }
+                break;
+              case 0:
+                switch (message.activity.type) {
+                  case 'switch':
+                    app.putSelfPath(message.activity.path, 0, (d) => app.debug(`put response: ${JSON.stringify(d)}`));
+                    break;
+                  case 'notification':
+                    if (message.activity.offstate) {
+                      plugin.App.notify(
+                        message.activity.path, 
+                        {
+                          state: message.activity.offstate,
+                          method: [],
+                          message: 'Scheduler OFF event'
+                        },
+                        plugin.id
+                      );
+                    } else {
+                      plugin.App.notify(message.activity.path, null, plugin.id);
+                    }
+                    break;
                 }
                 break;
             }
+          });
 
-            // Create a child process for executing the task's
-            // activities.
-            var child = child_process.fork(__dirname + "/task.js");
+          child.on('exit', () => {
+            log.N(`stopping scheduling of: ${name}`);
+            child = null;
+          });
 
-            // The child sends a message saying whether an activity
-            // should turn its output on or off, so we manage that her
-            // for both switch and notification outputs.
-            child.on('message', (message) => {
-              switch (message.action) {
-                case 1:
-                  switch (message.activity.type) {
-                    case 'switch':
-                      app.putSelfPath(message.activity.path, 1, (d) => app.debug("put response: %s", JSON.stringify(d)));
-                      break;
-                    case 'notification':
-                      notification.issue(message.activity.path, "Scheduler ON event", { state: message.activity.onstate });
-                    break;
-                    default:
-                      break;
-                  }
-                  break;
-                case 0:
-                  switch (message.activity.type) {
-                    case 'switch':
-                      app.putSelfPath(message.activity.path, 0, (d) => app.debug("put response: %s", JSON.stringify(d)));
-                      break;
-                    case 'notification':
-                      if (message.activity.offstate) {
-                        notification.issue(message.activity.path, "Scheduler OFF event", { state: message.activity.offstate });
-                      } else {
-                        notification.cancel(message.activity.path);
-                      }
-                      break;
-                  }
-                  break;
-              }
-            });
+          // Subscribe to the trigger <stream> and wait for the
+          // arrival of values saying whether to start or stop task
+          // activities and respond by sending appropriate control
+          // messages to the child process.
+          a.push(stream.skipDuplicates().onValue(state => {
+            app.debug(`received trigger ${state} for task '${name}'`);
+            switch (state) {
+              case 1:
+                log.N(`starting task '${name}'`);
+                if (child != null) child.send({ "action": "START", "activities": activities });
+                break;
+              case 0:
+                log.N(`stopping task '${name}'`);
+                if (child != null) child.send({ "action": "STOP" });
+                break;
+            }
+          }));
 
-            child.on('exit', () => {
-              log.N("stopping scheduling of: " + name);
-              child = null;
-            });
-
-            // Subscribe to the trigger <stream> and wait for the
-            // arrival of values saying whether to start or stop task
-            // activities and respond by sending appropriate control
-            // messages to the child process.
-            a.push(stream.skipDuplicates().onValue(state => {
-              app.debug("received trigger %d for task '%s'", state, name);
-              switch (state) {
-                case 1:
-                  log.N("starting task '%s'", name);
-                  if (child != null) child.send({ "action": "START", "activities": activities });
-                  break;
-                case 0:
-                  log.N("stopping task '%s'", name);
-                  if (child != null) child.send({ "action": "STOP" });
-                  break;
-              }
-            }));
-
-            return(a);
-          }, []);
-        } else {
-          log.N("configuration includes no valid tasks");
-        }
-	    } else {
-        log.N("configuration file is missing or unusable");
+          return(a);
+        }, []);
+      } else {
+        log.N("configuration includes no valid tasks");
       }
     }
   }
