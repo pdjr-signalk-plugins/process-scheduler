@@ -15,14 +15,14 @@
     "signalk-node-server-plugin",
     "signalk-category-utility"
   ],
-  "author": "Paul Reeve <preeve@pdjr.eu>",
+  "author": "Paul Reeve <preeve_at_pdjr_dot_eu>",
   "license": "Apache-2.0",
   "bugs": {
     "url": "https://github.com/pdjr-signalk/pdjr-skplugin-process-scheduler/issues"
   },
   "homepage": "https://github.com/pdjr-signalk/pdjr-skplugin-process-scheduler#readme",
   "dependencies": {
-    "baconjs": "^1.0.1",
-    "sprintf-js": "^1.1.2"
+    "signalk-libapp": "github:pdjr-signalk/signalk-libapp",
+    "signalk-liblog": "github:pdjr-signalk/signalk-liblog"
   }
 }
