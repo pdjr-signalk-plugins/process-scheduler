@@ -159,6 +159,8 @@ module.exports = function(app) {
       return(a);
     }, []);
 
+    app.debug(`using configuration: ${JSON.stringify(plugin.options)}`);
+
     // We reach this point with a validated list of tasks...
     if (plugin.options.tasks.length > 0) {
 
