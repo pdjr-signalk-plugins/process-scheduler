@@ -44,6 +44,7 @@ const PLUGIN_SCHEMA = {
             "title": "Activities making up the schedule task",
             "type": "array",
             "items": {
+              "title": "activity",
               "type": "object",
               "properties": {
                 "path": {
@@ -97,7 +98,6 @@ module.exports = function(app) {
   plugin.App = new MyApp(app);
 
   const log = new Log(plugin.id, { ncallback: app.setPluginStatus, ecallback: app.setPluginError });
-  //const sleep = (waitTimeInMs) => new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 
 	plugin.start = function(options) {
     plugin.options = {};
