@@ -100,7 +100,7 @@ module.exports = function(app) {
   const log = new Log(plugin.id, { ncallback: app.setPluginStatus, ecallback: app.setPluginError });
 
 	plugin.start = function(options) {
-    plugin.options = (options.tasks || []).reduce((a,task) => {
+    plugin.options.tasks = (options.tasks || []).reduce((a,task) => {
       var validTask = {};
       try {
         if (task.name) validTask.name = task.name; else throw new Error("missing 'name' property");
