@@ -16,8 +16,8 @@
 
 const child_process = require("child_process");
 
-const MyApp = require('./lib/signalk-libapp/App.js');
-const Log = require('./lib/signalk-liblog/Log.js');
+const MyApp = require('signalk-libapp/App.js');
+const Log = require('signalk-liblog/Log.js');
 
 const PLUGIN_ID = "process-scheduler";
 const PLUGIN_NAME = "pdjr-skplugin-process-scheduler";
@@ -47,6 +47,10 @@ const PLUGIN_SCHEMA = {
               "title": "activity",
               "type": "object",
               "properties": {
+                "name": {
+                  "title": "Activity name",
+                  "type": "string"
+                },
                 "path": {
                   "title": "Process control path",
                   "type": "string"
@@ -54,10 +58,6 @@ const PLUGIN_SCHEMA = {
                 "duration": {
                   "title": "Activity duration in seconds",
                   "type": "number"
-                },
-                "name": {
-                  "title": "Activity name",
-                  "type": "string"
                 },
                 "delay": {
                   "title": "Delay start by this many seconds",
@@ -82,7 +82,7 @@ const PLUGIN_SCHEMA = {
 };
 const PLUGIN_UISCHEMA = {};
 
-const TASK_NAME_DEFAULT = "anonymous task";
+const ACTIVITY_NAME_DEFAULT = 'activity';
 const ACTIVITY_DELAY_DEFAULT = 0;
 const ACTIVITY_REPEAT_DEFAULT = 1;
 
@@ -100,75 +100,64 @@ module.exports = function(app) {
   const log = new Log(plugin.id, { ncallback: app.setPluginStatus, ecallback: app.setPluginError });
 
 	plugin.start = function(options) {
-    plugin.options = {};
-    plugin.options.tasks = options.tasks.filter(task => {
-      var matches;
+    plugin.options = (options.tasks || []).reduce((a,task) => {
+      var validTask = {};
       try {
-        task.name = (task.name)?task.name:TASK_NAME_DEFAULT;
+        if (task.name) validTask.name = task.name; else throw new Error("missing 'name' property");
+        if (task.controlPath) validTask.controlPath = task.controlPath; else throw new Error("missing 'controlPath' property");
+        validTask.controlpathobject = {};
+        if (matches = task.controlPath.match(/^electrical\.switches\..*$/)) {
+          validTask.controlpathobject.type = 'switch';
+          validTask.controlpathobject.path = task.controlPath;
+          validTask.controlpathobject.onvalue = 1;
+        } else if ((matches = task.controlPath.match(/^notifications\.(.*)\:(.*)$/)) && (matches.length == 3)) {
+          validTask.controlpathobject.type = 'notification';
+          validTask.controlpathobject.path = `notifications.${matches[1]}`;
+          validTask.controlpathobject.onstate = matches[2];
+        } else if ((matches = task.controlPath.match(/^notifications\.(.*)$/)) && (matches.length == 2)) {
+          validTask.controlpathobject.type = 'notification';
+          validTask.controlpathobject.path = `notifications.${matches[1]}`;
+          validTask.controlpathobject.onstate = undefined;
+        } else throw new Error ("invalid 'controlPath' property");
 
-        if (task.controlPath) {
-          task.controlpathobject = {};
-          if (matches = task.controlPath.match(/^electrical\.switches\..*$/)) {
-            task.controlpathobject.type = 'switch';
-            task.controlpathobject.path = task.controlPath;
-            task.controlpathobject.onvalue = 1;
-          } else if ((matches = task.controlPath.match(/^notifications\.(.*)\:(.*)$/)) && (matches.length == 3)) {
-            task.controlpathobject.type = 'notification';
-            task.controlpathobject.path = `notifications.${matches[1]}`;
-            task.controlpathobject.onstate = matches[2];
-          } else if ((matches = task.controlPath.match(/^notifications\.(.*)$/)) && (matches.length == 2)) {
-            task.controlpathobject.type = 'notification';
-            task.controlpathobject.path = `notifications.${matches[1]}`;
-            task.controlpathobject.onstate = undefined;
-          } else {
-            throw new Error ("ignoring task with invalid enabling path");
-          }
-        }
-
-        if ((task.activities) && (Array.isArray(task.activities)) && (task.activities.length > 0)) {
-          var activityindex = 0;
-          task.activities.forEach(activity => {
-            activity.name = ((activity.name)?activity.name:ACTIVITY_NAME_DEFAULT) + "[" + activityindex++ + "]";
-            activity.delay = (activity.delay)?activity.delay:ACTIVITY_DELAY_DEFAULT;
-            activity.repeat = (activity.repeat)?activity.repeat:ACTIVITY_REPEAT_DEFAULT;
-            if (activity.path) {
-              if ((matches = activity.path.match(/^electrical\.switches\.(.*)$/)) && (matches.length == 2)) {
-                activity.type = 'switch';
-                activity.path = activity.path;
-                activity.onvalue = 1;
-                activity.offvalue = 0;
-              } else if ((matches = activity.path.match(/^notifications\.(.*)\:(.*)\:(.*)$/)) && (matches.length == 4)) {
-                activity.type = 'notification';
-                activity.path = `notifications.${matches[1]}`;
-                activity.onstate = matches[2];
-                activity.offstate = matches[3];
-              } else if ((matches = activity.path.match(/^notifications\.(.*)\:(.*)$/)) && (matches.length == 3)) {
-                activity.type = 'notification';
-                activity.path = `notifications.${matches[1]}`;
-                activity.onstate = matches[2];
-                activity.offstate = 'normal';
-              } else if ((matches = activity.path.match(/^notifications\.(.*)$/)) && (matches.length == 2)) {
-                activity.type = 'notification';
-                activity.path = `notifications.${matches[1]}`;
-                activity.onstate = 'normal';
-                activity.offstate = undefined;
-              } else {
-                throw new Error(`invalid control path (${activity.path})`);
-              }
-            } else {
-              throw new Error("missing control path");
-            }
-            if (!activity.duration) throw new Error("duration not specified");
-          });
-        } else {
-          throw new Error("no activities specified");
-        }
-        return(true);
-      } catch(e) {
-        log.E(`ignoring badly configured task '${task.name}' (${e})`, false);
-        return(false);
-      }
-    });
+        if ((!task.activities) || (!Array.isArray(task.activities)) || (task.activities.length == 0)) throw new Error("missing 'activities' array property");
+        var activityindex = 0;
+        validTask.activities = task.activities.reduce((a,activity) => {
+          var validActivity = {};
+          validActivity.name = `${(activity.name)?activity.name:ACTIVITY_NAME_DEFAULT}-${activityindex++}`,
+          validActivity.delay = (activity.delay)?activity.delay:ACTIVITY_DELAY_DEFAULT;
+          validActivity.repeat = (activity.repeat)?activity.repeat:ACTIVITY_REPEAT_DEFAULT;
+          if (!activity.path) throw new Error("missing activity 'path' property");
+          if ((matches = activity.path.match(/^electrical\.switches\.(.*)$/)) && (matches.length == 2)) {
+            validActivity.type = 'switch';
+            validActivity.path = activity.path;
+            validActivity.onvalue = 1;
+            validActivity.offvalue = 0;
+          } else if ((matches = activity.path.match(/^notifications\.(.*)\:(.*)\:(.*)$/)) && (matches.length == 4)) {
+            validActivity.type = 'notification';
+            validActivity.path = `notifications.${matches[1]}`;
+            validActivity.onstate = matches[2];
+            validActivity.offstate = matches[3];
+          } else if ((matches = activity.path.match(/^notifications\.(.*)\:(.*)$/)) && (matches.length == 3)) {
+            validActivity.type = 'notification';
+            validActivity.path = `notifications.${matches[1]}`;
+            validActivity.onstate = matches[2];
+            validActivity.offstate = 'normal';
+          } else if ((matches = activity.path.match(/^notifications\.(.*)$/)) && (matches.length == 2)) {
+            validActivity.type = 'notification';
+            validActivity.path = `notifications.${matches[1]}`;
+            validActivity.onstate = 'normal';
+            validActivity.offstate = undefined;
+          } else throw new Error("invalid activity control 'path' property");
+          if (!activity.duration) throw new Error("missing 'duration' property");
+          validActivity.duration = activity.duration;
+          a.push(validActivity);
+          return(a);
+        }, []);
+        a.push(validTask);
+      } catch(e) { log.W(`dropping task with invalid configuration (${e.message})`); }
+      return(a);
+    }, []);
 
     // We reach this point with a validated list of tasks...
     if (plugin.options.tasks.length > 0) {
