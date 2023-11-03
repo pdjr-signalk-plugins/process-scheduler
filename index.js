@@ -100,64 +100,66 @@ module.exports = function(app) {
   const log = new Log(plugin.id, { ncallback: app.setPluginStatus, ecallback: app.setPluginError });
 
 	plugin.start = function(options) {
-    plugin.options.tasks = (options.tasks || []).reduce((a,task) => {
-      var validTask = {};
-      try {
-        if (task.name) validTask.name = task.name; else throw new Error("missing 'name' property");
-        if (task.controlPath) validTask.controlPath = task.controlPath; else throw new Error("missing 'controlPath' property");
-        validTask.controlpathobject = {};
-        if (matches = task.controlPath.match(/^electrical\.switches\..*$/)) {
-          validTask.controlpathobject.type = 'switch';
-          validTask.controlpathobject.path = task.controlPath;
-          validTask.controlpathobject.onvalue = 1;
-        } else if ((matches = task.controlPath.match(/^notifications\.(.*)\:(.*)$/)) && (matches.length == 3)) {
-          validTask.controlpathobject.type = 'notification';
-          validTask.controlpathobject.path = `notifications.${matches[1]}`;
-          validTask.controlpathobject.onstate = matches[2];
-        } else if ((matches = task.controlPath.match(/^notifications\.(.*)$/)) && (matches.length == 2)) {
-          validTask.controlpathobject.type = 'notification';
-          validTask.controlpathobject.path = `notifications.${matches[1]}`;
-          validTask.controlpathobject.onstate = undefined;
-        } else throw new Error ("invalid 'controlPath' property");
+    plugin.options = {
+      tasks: (options.tasks || []).reduce((a,task) => {
+        var validTask = {};
+        try {
+          if (task.name) validTask.name = task.name; else throw new Error("missing 'name' property");
+          if (task.controlPath) validTask.controlPath = task.controlPath; else throw new Error("missing 'controlPath' property");
+          validTask.controlpathobject = {};
+          if (matches = task.controlPath.match(/^electrical\.switches\..*$/)) {
+            validTask.controlpathobject.type = 'switch';
+            validTask.controlpathobject.path = task.controlPath;
+            validTask.controlpathobject.onvalue = 1;
+          } else if ((matches = task.controlPath.match(/^notifications\.(.*)\:(.*)$/)) && (matches.length == 3)) {
+            validTask.controlpathobject.type = 'notification';
+            validTask.controlpathobject.path = `notifications.${matches[1]}`;
+            validTask.controlpathobject.onstate = matches[2];
+          } else if ((matches = task.controlPath.match(/^notifications\.(.*)$/)) && (matches.length == 2)) {
+            validTask.controlpathobject.type = 'notification';
+            validTask.controlpathobject.path = `notifications.${matches[1]}`;
+           validTask.controlpathobject.onstate = undefined;
+          } else throw new Error ("invalid 'controlPath' property");
 
-        if ((!task.activities) || (!Array.isArray(task.activities)) || (task.activities.length == 0)) throw new Error("missing 'activities' array property");
-        var activityindex = 0;
-        validTask.activities = task.activities.reduce((a,activity) => {
-          var validActivity = {};
-          validActivity.name = `${(activity.name)?activity.name:ACTIVITY_NAME_DEFAULT}-${activityindex++}`,
-          validActivity.delay = (activity.delay)?activity.delay:ACTIVITY_DELAY_DEFAULT;
-          validActivity.repeat = (activity.repeat)?activity.repeat:ACTIVITY_REPEAT_DEFAULT;
-          if (!activity.path) throw new Error("missing activity 'path' property");
-          if ((matches = activity.path.match(/^electrical\.switches\.(.*)$/)) && (matches.length == 2)) {
-            validActivity.type = 'switch';
-            validActivity.path = activity.path;
-            validActivity.onvalue = 1;
-            validActivity.offvalue = 0;
-          } else if ((matches = activity.path.match(/^notifications\.(.*)\:(.*)\:(.*)$/)) && (matches.length == 4)) {
-            validActivity.type = 'notification';
-            validActivity.path = `notifications.${matches[1]}`;
-            validActivity.onstate = matches[2];
-            validActivity.offstate = matches[3];
-          } else if ((matches = activity.path.match(/^notifications\.(.*)\:(.*)$/)) && (matches.length == 3)) {
-            validActivity.type = 'notification';
-            validActivity.path = `notifications.${matches[1]}`;
-            validActivity.onstate = matches[2];
-            validActivity.offstate = 'normal';
-          } else if ((matches = activity.path.match(/^notifications\.(.*)$/)) && (matches.length == 2)) {
-            validActivity.type = 'notification';
-            validActivity.path = `notifications.${matches[1]}`;
-            validActivity.onstate = 'normal';
-            validActivity.offstate = undefined;
-          } else throw new Error("invalid activity control 'path' property");
-          if (!activity.duration) throw new Error("missing 'duration' property");
-          validActivity.duration = activity.duration;
-          a.push(validActivity);
-          return(a);
-        }, []);
-        a.push(validTask);
-      } catch(e) { log.W(`dropping task with invalid configuration (${e.message})`); }
-      return(a);
-    }, []);
+          if ((!task.activities) || (!Array.isArray(task.activities)) || (task.activities.length == 0)) throw new Error("missing 'activities' array property");
+          var activityindex = 0;
+          validTask.activities = task.activities.reduce((a,activity) => {
+            var validActivity = {};
+            validActivity.name = `${(activity.name)?activity.name:ACTIVITY_NAME_DEFAULT}-${activityindex++}`,
+            validActivity.delay = (activity.delay)?activity.delay:ACTIVITY_DELAY_DEFAULT;
+            validActivity.repeat = (activity.repeat)?activity.repeat:ACTIVITY_REPEAT_DEFAULT;
+            if (!activity.path) throw new Error("missing activity 'path' property");
+            if ((matches = activity.path.match(/^electrical\.switches\.(.*)$/)) && (matches.length == 2)) {
+              validActivity.type = 'switch';
+              validActivity.path = activity.path;
+              validActivity.onvalue = 1;
+              validActivity.offvalue = 0;
+            } else if ((matches = activity.path.match(/^notifications\.(.*)\:(.*)\:(.*)$/)) && (matches.length == 4)) {
+              validActivity.type = 'notification';
+              validActivity.path = `notifications.${matches[1]}`;
+              validActivity.onstate = matches[2];
+              validActivity.offstate = matches[3];
+            } else if ((matches = activity.path.match(/^notifications\.(.*)\:(.*)$/)) && (matches.length == 3)) {
+              validActivity.type = 'notification';
+              validActivity.path = `notifications.${matches[1]}`;
+              validActivity.onstate = matches[2];
+              validActivity.offstate = 'normal';
+            } else if ((matches = activity.path.match(/^notifications\.(.*)$/)) && (matches.length == 2)) {
+              validActivity.type = 'notification';
+              validActivity.path = `notifications.${matches[1]}`;
+              validActivity.onstate = 'normal';
+              validActivity.offstate = undefined;
+            } else throw new Error("invalid activity control 'path' property");
+            if (!activity.duration) throw new Error("missing 'duration' property");
+            validActivity.duration = activity.duration;
+            a.push(validActivity);
+            return(a);
+          }, []);
+          a.push(validTask);
+        } catch(e) { log.W(`dropping task with invalid configuration (${e.message})`); }
+        return(a);
+      }, [])
+    }
 
     app.debug(`using configuration: ${JSON.stringify(plugin.options, null, 2)}`);
 
