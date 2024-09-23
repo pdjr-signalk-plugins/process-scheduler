@@ -24,7 +24,7 @@ const PLUGIN_SCHEMA: object = {
   "type": "object",
   "properties": {
     "tasks": {
-      "title": "Schedule tasks",
+      "title": "Scheduler tasks",
       "type": "array",
       "items": {
         "title": "Task",

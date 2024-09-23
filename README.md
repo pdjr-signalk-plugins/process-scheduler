@@ -12,9 +12,9 @@ event, an elapsed *duration* and finally a stop event.
 The activity can be *repeat*ed an arbitrary number of times or
 indefinitely.
 
-The start event is associated with either a PUT update to (1) on a
-Signal K switch path or the issuing of a notification on some Signal K
-notification path.
+The start event is associated with either state change to (1) on a
+Signal K switch path or the appearance of a notification on some
+Signal K notification path.
 
 The stop event is associated with either a PUT update to (0) on a
 Signal K switch path or the issuing or cancelling of a notification on
@@ -67,14 +67,14 @@ might look like this.
           "name": "start",
           "path": "electrical.switches.bank.26.5.state",
           "delay": 0,
-          "duration": 120,
+          "duration": 60,
           "iterate": 1
         },
         {
           "name": "iterate",
           "path": "electrical.switches.bank.26.5.state",
           "delay": 1800,
-          "duration": 30,
+          "duration": 10,
           "iterate": 0
         }
       ]
@@ -85,27 +85,31 @@ might look like this.
 
 ## Configuration
 
-The plugin has the following configuration properties.
+<dl>
+  <dt>Scheduler tasks (*tasks*)</dt>
+  <dd>
+  Collection of *task* definitions.
+  Each item in the *tasks* array has the following configuration
+  properties.
+  </dd>
+  <dt>Task name (*name*)</dt>
+  <dd>
+  Required string naming the task being configured.
+  </dd>
+  <dt>Control path (*controlPath*)</dt>
+  <dd>
+  Required Signal K key whose value triggers the task.
+  <p>
 
-| Property name | Value type | Value default | Description |
-| :------------ | :--------- | :------------ | :---------- |
-| tasks         | Array      | (none)        | Collection of *task* objects. |
-
-Each *task* object has the following properties.
-
-| Property name | Value type | Value default | Description |
-| :------------ | :--------- | :------------ | :---------- |
-| name          | String     | ''            | Name of the task (used in messaging and logging). |
-| controlpath   | String     | (none)        | Signal K key whose value triggers the task. |
-| activities    | Array      | (none)        | Collection of *activity* objects. |
-
+### Specifying a control path
 There are two ways of specifying a *controlpath* key.
 
 1. Use a switch path. Simply supply a path in the 'electrical.switches.'
    tree which when on (1) will enable the task.
 
 2. Use a notification path. Supplying a notification path allows a task
-   to be controlled either by the presence/absense of a notification.
+   to be controlled either by the presence/absense of a notification or
+   by the value of a notification's state key. 
    Supplying a path of the form  '*notification_path*[**:**_state_]'
    allows control by the presence/absense of a particular notification
    state.
