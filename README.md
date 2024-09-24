@@ -3,32 +3,18 @@
 ## Description
 
 **pdjr-skplugin-process-scheduler** implements a simple process
-scheduler which manages an arbitrary number of user defined *task*s.
+scheduler which manages the operation of an arbitrary number of user
+defined *task*s.
+Functionally, a task is made up of a collection of sequentially
+executed activities each of which updates the Signal K state by
+modulating keys in the 'electrical.switches.' or 'notifications.'
+hierarchies.
 
-A *task* is composed of a sequence of one or more activities.
-
-Each *activity* consists of an initial *delay* followed by a start
-event, an elapsed *duration* and finally a stop event.
-The activity can be *repeat*ed an arbitrary number of times or
-indefinitely.
-
-The start event is associated with either state change to (1) on a
-Signal K switch path or the appearance of a notification on some
-Signal K notification path.
-
-The stop event is associated with either a PUT update to (0) on a
-Signal K switch path or the issuing or cancelling of a notification on
-some Signal K notification path.
-
-The resulting sequence of event activity can be leveraged to control
-external, real world, processes.
-
-Each *task* is triggered by the appearance of either a boolean true
-value on a Signal K switch path or of a notification, perhaps with a
-particular state, on a notification path.
-
-More complex trigger conditions can be implemented using an external
-plugin to raise and remove any necessary trigger.
+Each *task* is triggered and will continue to operate whilst some
+specified value is maintained on a Signal K key configured as its
+*control path*.
+Control paths are required to be members of either the 'notifications.'
+or 'electrical.switches.' hierarchies. 
 
 ## Example application
 
@@ -41,20 +27,20 @@ This requirement can be met by a "lubrication" task consisting of two
 activities: a 'start' activity which runs once when the main engine is
 fired up and a subsequent 'iterate' activity which runs repeatedly for
 as long as the engine is running.
-The start event in both activities is used to issue a notification which
-signals that the lubrication pump should run.
+The output of both activities is used to signal when the shaft lubrication
+pump should run.
 
 Controlling execution of the lubrication task can be accomplished in
-many ways, the simplest is probably to sense the state of the engine
-ignition switch.
-Modern engines with CAN interfaces into Signal K may support other ways
-of detecting engine state.
+many ways: I choose to sense the state of the engine ignition switch.
 
-The simplest control strategy for the lubrication pump involves
-directing PUT updates to a relay switch channel.
+On my ship the ignition switch state is echoed by the value on
+'electrical.switches.bank.0.11.state'.
 
-The plugin configuration for handling just this shaft librication task
-might look like this.
+My stern gland lubrication pump is operated by a relay on
+'electrical.switches.bank.26.5.state'.
+
+The plugin configuration I use for handling the shaft librication task
+looks like this.
 
 ```
 "configuration": {
@@ -91,28 +77,77 @@ might look like this.
   Collection of *task* definitions.
   Each item in the *tasks* array has the following configuration
   properties.
-  </dd>
-  <dt>Task name (*name*)</dt>
-  <dd>
-  Required string naming the task being configured.
-  </dd>
-  <dt>Control path (*controlPath*)</dt>
-  <dd>
-  Required Signal K key whose value triggers the task.
-  <p>
+  <dl>
+    <dt>Task name (*name*)</dt>
+    <dd>
+    Required string naming the task being configured.
+    </dd>
+    <dt>Control path (*controlPath*)</dt>
+    <dd>
+    Required string supplying a Signal K key and optional value
+    which will be used to trigger the task.
+    The plugin understands three control path formats.
+    <ul>
+      <li>
+        '
+    <p>
+    A control path of the form '*path*:*value*' says that the task should
+    only be triggered when the Signal K value on *path* is equal to
+    *value*.
+    For example: 'electrical.switches.bank.0.12.state:1' will operate the
+    task when switch channel 12 on switch bank 0 is ON.
+    </p>
+    <p>
+    A control path of the form '*path*' says that the task should be
+    triggered whenever *path* is present (or not null).
+    This form is useful with key values in the Signal K notifications
+    tree.
+    For example: 'notifications.mytasktrigger'.
+    </dd>
+    <dt>Activities (*activities*)</dt>
+    <dd>
+    Collection of *activity* definitions.
+    Each item in the *activities* array has the following configuration
+    properties.
+    <dl>
+      <dt>Activity name (*name*)</dt>
+      <dd>
+      Required string supplying a name for this activity which will be
+      used in messaging and logging.
+      </dd>
+      <dt>Process control path (*path*)</dt>
+      <dd>
+      Required string specifying the Signal K key which should be
+      updated when start and stop events occur.
+      The path specified here will typically be in either the
+      'electrical.switches.' or 'notifications.' trees and three forms
+      are possible.
+      <ul>
+        <li>
+        Path only. Eg: 'electrical.switches.bank.3.5.state'.
+        The start event will update the key with the value 1; the stop
+        event will update the key with the value 0.
+        </li>
+        <li>
+        Path with 'on' value. Eg: 'notifications.mycontrol:on'
+      </dd>
+      <dt>Activity duration in seconds (**)</dt>
+      <dd>
+      Number seconds between activity start and stop events.
+      </dd>
+      <dt>Delay start by this many seconds (**)</dt>
+      <dd>
+      Number of seconds between activity start and issuing of a start
+      update on the process control path.
+      </dd>
+      <dt>How many times to repeat (**)</dt>
+      <dd>
+      Number of times to repeat the activity (0 says forever).
+      </dd>
+    </dl>
+  </dl>
+</dl>
 
-### Specifying a control path
-There are two ways of specifying a *controlpath* key.
-
-1. Use a switch path. Simply supply a path in the 'electrical.switches.'
-   tree which when on (1) will enable the task.
-
-2. Use a notification path. Supplying a notification path allows a task
-   to be controlled either by the presence/absense of a notification or
-   by the value of a notification's state key. 
-   Supplying a path of the form  '*notification_path*[**:**_state_]'
-   allows control by the presence/absense of a particular notification
-   state.
 
 Each object in the *activities* array has the following properties.
 

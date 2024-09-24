@@ -24,7 +24,7 @@ const PLUGIN_SCHEMA: object = {
   "type": "object",
   "properties": {
     "tasks": {
-      "title": "Scheduler tasks",
+      "title": "Schedule tasks",
       "type": "array",
       "items": {
         "title": "Task",
@@ -163,9 +163,9 @@ module.exports = function(app: any) {
       // We reach this point with a validated list of tasks...
       if (options.tasks.length > 0) {
         if (options.tasks.length == 1) {
-          app.setPluginStatus(`scheduling task '${options.tasks[0].name}'`);
+          app.setPluginStatus(`Started: scheduling task '${options.tasks[0].name}'`);
         } else {
-          app.setPluginStatus("scheduling multiple tasks (see log for details)");
+          app.setPluginStatus("Started: scheduling multiple tasks (see log for details)");
         }
         
         // Subscribe to each tasks trigger stream, implement a child
