@@ -247,7 +247,7 @@ module.exports = function(app: any) {
             // arrival of values saying whether to start or stop task
             // activities and respond by sending appropriate control
             // messages to the child process.
-            a.push(stream.skipDuplicates().onValue((state: any) => {
+            a.push(stream.skipDuplicates().onValue((state: number) => {
               app.debug(`received trigger ${state} for task '${task.name}'`);
               switch (state) {
                 case 1:
