@@ -222,7 +222,7 @@ module.exports = function (app) {
                                             app.putSelfPath(message.activity.path, 1, (d) => app.debug(`put response: ${JSON.stringify(d)}`));
                                             break;
                                         case 'notification':
-                                            delta.addValue(message.activity.path, { state: message.activity.onstate, method: [], message: 'Scheduler ON event' });
+                                            delta.addValue(message.activity.path, { state: message.activity.onstate, method: [], message: 'Scheduler ON event' }).commit().clear();
                                             break;
                                         default:
                                             break;
@@ -235,10 +235,10 @@ module.exports = function (app) {
                                             break;
                                         case 'notification':
                                             if (message.activity.offState) {
-                                                delta.addValue(message.activity.path, { state: message.activity.offstate, method: [], message: 'Scheduler OFF event' });
+                                                delta.addValue(message.activity.path, { state: message.activity.offstate, method: [], message: 'Scheduler OFF event' }).commit().clear();
                                             }
                                             else {
-                                                delta.addValue(message.activity.path, null);
+                                                delta.addValue(message.activity.path, null).commit().clear();
                                             }
                                             break;
                                     }
