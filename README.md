@@ -14,7 +14,7 @@ Each *task* is triggered and will continue to operate whilst some
 specified value is maintained on a Signal K key configured as its
 *control path*.
 Control paths are required to be members of either the 'notifications.'
-or 'electrical.switches.' hierarchies. 
+or 'electrical.switches.' hierarchies.
 
 ## Example application
 
@@ -27,13 +27,12 @@ This requirement can be met by a "lubrication" task consisting of two
 activities: a 'start' activity which runs once when the main engine is
 fired up and a subsequent 'iterate' activity which runs repeatedly for
 as long as the engine is running.
-The output of both activities is used to signal when the shaft lubrication
-pump should run.
+The output of both activities is used to signal when the shaft
+lubrication pump should run.
 
 Controlling execution of the lubrication task can be accomplished in
-many ways: I choose to sense the state of the engine ignition switch.
-
-On my ship the ignition switch state is echoed by the value on
+many ways: I choose to sense the state of the engine ignition switch
+which on my ship is echoed by the value on
 'electrical.switches.bank.0.11.state'.
 
 My stern gland lubrication pump is operated by a relay on
@@ -89,20 +88,20 @@ looks like this.
     The plugin understands three control path formats.
     <ul>
       <li>
-        '
-    <p>
-    A control path of the form '*path*:*value*' says that the task should
-    only be triggered when the Signal K value on *path* is equal to
-    *value*.
-    For example: 'electrical.switches.bank.0.12.state:1' will operate the
-    task when switch channel 12 on switch bank 0 is ON.
-    </p>
-    <p>
-    A control path of the form '*path*' says that the task should be
-    triggered whenever *path* is present (or not null).
-    This form is useful with key values in the Signal K notifications
-    tree.
-    For example: 'notifications.mytasktrigger'.
+        'electrical.switches.*'.
+        The task will operate when the specified key has the value 1.
+      </li>
+      <li>
+        'notifications.*'.
+        The task will operate when a notification is present on the
+        specified key.
+      </li>
+      <li>
+        'notifications.\*:*state*'.
+        The task will operate when a notification with a state value of
+        *state* is present on the specified key.
+      </li>
+    </ul>
     </dd>
     <dt>Activities (*activities*)</dt>
     <dd>
@@ -119,59 +118,50 @@ looks like this.
       <dd>
       Required string specifying the Signal K key which should be
       updated when start and stop events occur.
-      The path specified here will typically be in either the
-      'electrical.switches.' or 'notifications.' trees and three forms
-      are possible.
+      The specified path must be in either the 'electrical.switches.'
+      or 'notifications.' trees and four forms are possible.
       <ul>
         <li>
-        Path only. Eg: 'electrical.switches.bank.3.5.state'.
+        'electrical.switches.*'.
         The start event will update the key with the value 1; the stop
         event will update the key with the value 0.
         </li>
         <li>
-        Path with 'on' value. Eg: 'notifications.mycontrol:on'
+        'notifications.*'.
+        The start event will update the key with a notification with
+        state 'normal'; the stop event will remove the notification on
+        key.
+        </li>
+        <li>
+        'notifications.*:onstate'.
+        The start event will update the key with a notification with
+        state '*onstate*'; the stop event will remove the notification on
+        key.
+        </li>
+        <li>
+        'notifications.*:onstate:offstate'.
+        The start event will update the key with a notification with
+        state '*onstate*'; the stop event will update the key with a
+        notification with state 'offstate'.
+        </li>
+      </ul>
       </dd>
-      <dt>Activity duration in seconds (**)</dt>
+      <dt>Activity duration in seconds (*duration*)</dt>
       <dd>
       Number seconds between activity start and stop events.
       </dd>
-      <dt>Delay start by this many seconds (**)</dt>
+      <dt>Delay start by this many seconds (*delay*)</dt>
       <dd>
-      Number of seconds between activity start and issuing of a start
-      update on the process control path.
+      Number of seconds between the activity being started and the
+      issuing of a start event.
       </dd>
-      <dt>How many times to repeat (**)</dt>
+      <dt>How many times to repeat (*iterate*)</dt>
       <dd>
       Number of times to repeat the activity (0 says forever).
       </dd>
     </dl>
   </dl>
 </dl>
-
-
-Each object in the *activities* array has the following properties.
-
-| Property name | Value type | Value default | Description |
-| :------------ | :--------- | :------------ | :---------- |
-| path          | String     | (none)        | Signal K key to be updated when start and stop events occur. |
-| duration      | Number     | (none)        | Number seconds between activity start and stop events. |
-| name          | String     | ''            | Name of the activity (used in messaging and logging). |
-| delay         | Number     | 0             | Number of seconds before start event. |
-| repeat        | Number     | 1             | Number of times to repeat the activity (0 says forever). |
-
-*path* can specify either a switch key or a notification key.
-A switch key will be set to 1 by the on event and to 0 by the off
-event.
-A simple notification key will result in a notification with state
-'normal' being issued by the on event and the notification being
-cancelled by the off event.
-A key of the form '*notification_path*__:__*state*' causes similar
-behaviour, but the notification issued by the on event will have the
-specified *state*.
-A key of the form '*notification_path*__:__*onstate*__:__*offstate*'
-will result in a persistent notification whose state is set to the
-specified values by the on and off events.
-
 # Author
 
 Paul Reeve <*preeve_at_pdjr_dot_eu*>
