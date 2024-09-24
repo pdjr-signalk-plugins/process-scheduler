@@ -104,18 +104,22 @@ module.exports = function(app: any) {
             if (task.name) validTask.name = task.name; else throw new Error("missing 'name' property");
             if (task.controlPath) validTask.controlPath = task.controlPath; else throw new Error("missing 'controlPath' property");
             validTask.controlPathObject = {};
-            if (matches = task.controlPath.match(/^electrical\.switches\..*$/)) {
-              validTask.controlPathObject.type = 'switch';
-              validTask.controlPathObject.path = task.controlPath;
-              validTask.controlPathObject.onValue = 1;
-            } else if ((matches = task.controlPath.match(/^notifications\.(.*)\:(.*)$/)) && (matches.length == 3)) {
+            if ((matches = task.controlPath.match(/^notifications\.(.*)\:(.*)$/)) && (matches.length == 3)) {
               validTask.controlPathObject.type = 'notification';
               validTask.controlPathObject.path = `notifications.${matches[1]}`;
-              validTask.controlPathObject.onState = matches[2];
+              validTask.controlPathObject.onValue = matches[2];
             } else if ((matches = task.controlPath.match(/^notifications\.(.*)$/)) && (matches.length == 2)) {
               validTask.controlPathObject.type = 'notification';
               validTask.controlPathObject.path = `notifications.${matches[1]}`;
-              validTask.controlPathObject.onState = undefined;
+              validTask.controlPathObject.onValue = undefined;
+            } else if (matches = task.controlPath.match(/^(.*):(.*)$/)) {
+              validTask.controlPathObject.type = 'switch';
+              validTask.controlPathObject.path = matches[1];
+              validTask.controlPathObject.onValue = matches[2];
+            } else if (matches = task.controlPath.match(/^(.*)$/)) {
+              validTask.controlPathObject.type = 'switch';
+              validTask.controlPathObject.path = matches[1];
+              validTask.controlPathObject.onValue = 1;
             } else throw new Error ("invalid 'controlPath' property");
 
             if ((!task.activities) || (!Array.isArray(task.activities)) || (task.activities.length == 0)) throw new Error("missing 'activities' array property");
@@ -180,13 +184,13 @@ module.exports = function(app: any) {
             var stream = app.streambundle.getSelfStream(task.controlPathObject.path);
             switch (task.controlPathObject.type) {
               case 'switch':
-                ;
+                stream = stream.map((s: any, v: any) => ((v == s)?1:0), task.controlPathObject.onValue);
                 break;
               case 'notification':
-                if (task.controlPathObject.onState === undefined) {
+                if (task.controlPathObject.onValue === undefined) {
                   stream = stream.map((v: any) => (v !== null)?1:0);
                 } else {
-                  stream = stream.map((s: any, v: any) => ((v == s)?1:0), task.controlPathObject.onState);
+                  stream = stream.map((s: any, v: any) => ((v.state == s)?1:0), task.controlPathObject.onValue);
                 }
                 break;
             }
@@ -289,8 +293,7 @@ interface SKPlugin {
 interface ControlPathObject {
   type?: string,
   path?: string,
-  onValue?: number | undefined,
-  onState?: string | undefined
+  onValue?: string | number | undefined
 }
 
 interface Activity {

@@ -88,7 +88,7 @@ looks like this.
     The plugin understands three control path formats.
     <ul>
       <li>
-        'electrical.switches.*'.
+        '*'.
         The task will operate when the specified key has the value 1.
       </li>
       <li>
