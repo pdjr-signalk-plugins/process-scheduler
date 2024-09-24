@@ -197,11 +197,13 @@ module.exports = function(app: any) {
             // Create a child process for executing the task's
             // activities.
             var child: ChildProcess | null = fork(`${__dirname}/task.js`);
+            app.debug(`created child process ${child}`);
 
             // The child sends a message saying whether an activity
             // should turn its output on or off, so we manage that her
             // for both switch and notification outputs.
             child.on('message', (message: any) => {
+              app.debug(`received message from child ${JSON.stringify(message)}`)
               switch (message.action) {
                 case 1:
                   switch (message.activity.type) {
