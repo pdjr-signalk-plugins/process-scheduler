@@ -251,17 +251,21 @@ module.exports = function (app) {
                         // activities and respond by sending appropriate control
                         // messages to the child process.
                         a.push(stream.skipDuplicates().onValue((state) => {
-                            app.debug(`received trigger ${state} for task '${task.name}'`);
                             switch (state) {
                                 case 1:
-                                    app.setPluginStatus(`starting task '${task.name}'`);
+                                    app.debug(`Starting task '${task.name}'`);
+                                    app.setPluginStatus(`Starting task '${task.name}'`);
                                     if (child != null)
                                         child.send({ "action": "START", "activities": task.activities });
                                     break;
                                 case 0:
-                                    app.setPluginStatus(`stopping task '${task.name}'`);
+                                    app.debug(`Stopping task '${task.name}'`);
+                                    app.setPluginStatus(`Stopping task '${task.name}'`);
                                     if (child != null)
                                         child.send({ "action": "STOP" });
+                                    break;
+                                default:
+                                    app.debug(`Ignoring invalid start task request '${state}'`);
                                     break;
                             }
                         }));
