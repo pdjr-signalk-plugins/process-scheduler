@@ -84,6 +84,7 @@ const ACTIVITY_DELAY_DEFAULT = 0;
 const ACTIVITY_REPEAT_DEFAULT = 1;
 module.exports = function (app) {
     let unsubscribes = [];
+    let activeTasks = [];
     const plugin = {
         id: PLUGIN_ID,
         name: PLUGIN_NAME,
@@ -259,13 +260,15 @@ module.exports = function (app) {
                             switch (state) {
                                 case 1:
                                     app.debug(`Starting task '${task.name}'`);
-                                    app.setPluginStatus(`Starting task '${task.name}'`);
+                                    activeTasks.push(task.name || '');
+                                    app.setPluginStatus(`Operating: ${activeTasks.join(',')}`);
                                     if (child != null)
                                         child.send({ "action": "START", "activities": task.activities });
                                     break;
                                 case 0:
                                     app.debug(`Stopping task '${task.name}'`);
-                                    app.setPluginStatus(`Stopping task '${task.name}'`);
+                                    activeTasks = activeTasks.filter((e) => (e !== task.name));
+                                    app.setPluginStatus(`Operating: ${activeTasks.join(',')}`);
                                     if (child != null)
                                         child.send({ "action": "STOP" });
                                     break;

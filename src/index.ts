@@ -86,6 +86,7 @@ const ACTIVITY_REPEAT_DEFAULT: number = 1
 
 module.exports = function(app: any) {
 	let unsubscribes: (() => void)[] = []
+  let activeTasks: string[] = [];
 
   const plugin: SKPlugin = {
 	  id: PLUGIN_ID,
@@ -248,13 +249,15 @@ module.exports = function(app: any) {
             a.push(stream.skipDuplicates().onValue((state: number) => {
               switch (state) {
                 case 1:
-                  app.debug(`Starting task '${task.name}'`);                
-                  app.setPluginStatus(`Starting task '${task.name}'`);                
+                  app.debug(`Starting task '${task.name}'`);
+                  activeTasks.push(task.name || '');           
+                  app.setPluginStatus(`Operating: ${activeTasks.join(',')}`);             
                   if (child != null) child.send({ "action": "START", "activities": task.activities });
                   break;
                 case 0:
                   app.debug(`Stopping task '${task.name}'`);
-                  app.setPluginStatus(`Stopping task '${task.name}'`);
+                  activeTasks = activeTasks.filter((e) => (e !== task.name));
+                  app.setPluginStatus(`Operating: ${activeTasks.join(',')}`);             
                   if (child != null) child.send({ "action": "STOP" });
                   break;
                 default:
