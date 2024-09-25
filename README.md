@@ -5,9 +5,11 @@
 **pdjr-skplugin-process-scheduler** implements a simple process
 scheduler which manages the operation of an arbitrary number of user
 defined *task*s.
-Functionally, a task is made up of a collection of sequentially
-executed activities each of which updates the Signal K state by
-modulating a key value.
+
+A task is made up of a collection of sequentially executed, timed,
+perhaps repeating, activities.
+Each activity updates the Signal K state by modulating a key value
+when it commences and when it terminates.
 
 Each *task* is triggered and will continue to operate whilst some
 specified value is maintained on a Signal K key configured as its
@@ -19,7 +21,7 @@ directly to the propeller shaft bearing.
 I want to ensure that the bearing is well greased at the beginning
 of every voyage and lightly greased periodically during the voyage.
 
-This requirement is met by a "lubrication" task consisting of two
+This requirement is met by a 'lubrication' task consisting of two
 activities: a 'start' activity which runs once when the main engine is
 fired up and a subsequent 'iterate' activity which runs repeatedly for
 as long as the engine is running.
