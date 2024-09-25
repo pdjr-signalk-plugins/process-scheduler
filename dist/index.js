@@ -215,30 +215,29 @@ module.exports = function (app) {
                         // should turn its output on or off, so we manage that her
                         // for both switch and notification outputs.
                         child.on('message', (message) => {
-                            app.debug(`received message from child ${JSON.stringify(message)}`);
                             switch (message.action) {
                                 case 1:
                                     if (!message.activity.path.startsWith('notifications.')) {
-                                        app.debug(`Starting activity '${message.activity.name}' (setting '${message.activity.path}' to ${message.activity.onValue}`);
+                                        app.debug(`Starting activity '${message.activity.name}' (setting '${message.activity.path}' to '${message.activity.onValue}')`);
                                         app.putSelfPath(message.activity.path, message.activity.onValue, (d) => app.debug(`put response: ${JSON.stringify(d)}`));
                                     }
                                     else {
-                                        app.debug(`Starting activity '${message.activity.name}' (issuing '${message.activity.onValue}' notification on '${message.activity.path}'`);
+                                        app.debug(`Starting activity '${message.activity.name}' (issuing '${message.activity.onValue}' notification on '${message.activity.path}')`);
                                         delta.addValue(message.activity.path, { state: message.activity.onValue, method: [], message: 'Scheduler ON event' }).commit().clear();
                                     }
                                     break;
                                 case 0:
                                     if (!message.activity.path.startsWith('notifications.')) {
-                                        app.debug(`Stopping activity '${message.activity.name}' (setting '${message.activity.path}' to ${message.activity.onValue}`);
+                                        app.debug(`Stopping activity '${message.activity.name}' (setting '${message.activity.path}' to '${message.activity.onValue}')`);
                                         app.putSelfPath(message.activity.path, message.activity.offValue, (d) => app.debug(`put response: ${JSON.stringify(d)}`));
                                     }
                                     else {
                                         if (message.activity.offState) {
-                                            app.debug(`Stopping activity '${message.activity.name}' (issuing '${message.activity.onValue}' notification on '${message.activity.path}'`);
+                                            app.debug(`Stopping activity '${message.activity.name}' (issuing '${message.activity.onValue}' notification on '${message.activity.path}')`);
                                             delta.addValue(message.activity.path, { state: message.activity.offValue, method: [], message: 'Scheduler OFF event' }).commit().clear();
                                         }
                                         else {
-                                            app.debug(`Stopping activity '${message.activity.name}' (cancelling notification on '${message.activity.path}'`);
+                                            app.debug(`Stopping activity '${message.activity.name}' (cancelling notification on '${message.activity.path}')`);
                                             delta.addValue(message.activity.path, null).commit().clear();
                                         }
                                     }
