@@ -132,7 +132,7 @@ module.exports = function (app) {
                     var activityindex = 0;
                     validTask.activities = task.activities.reduce((a, activity) => {
                         let validActivity = {};
-                        validActivity.name = `${(activity.name !== undefined) ? activity.name : ACTIVITY_NAME_DEFAULT}-${activityindex++}`,
+                        validActivity.name = `${validTask.name}[` + `${(activity.name !== undefined) ? activity.name : ACTIVITY_NAME_DEFAULT}-${activityindex++}` + ']',
                             validActivity.delay = (activity.delay !== undefined) ? activity.delay : ACTIVITY_DELAY_DEFAULT;
                         validActivity.repeat = (activity.repeat !== undefined) ? activity.repeat : ACTIVITY_REPEAT_DEFAULT;
                         if (!activity.path)
