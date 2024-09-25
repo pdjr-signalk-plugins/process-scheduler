@@ -164,4 +164,4 @@ looks like this.
   </dl>
 </dl>
 ## Author
-Paul Reeve <*preeve_at_pdjr_dot_eu*>
+Paul Reeve \<*preeve_at_pdjr_dot_eu*\>
