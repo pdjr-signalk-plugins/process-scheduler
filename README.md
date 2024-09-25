@@ -7,14 +7,11 @@ scheduler which manages the operation of an arbitrary number of user
 defined *task*s.
 Functionally, a task is made up of a collection of sequentially
 executed activities each of which updates the Signal K state by
-modulating keys in the 'electrical.switches.' or 'notifications.'
-hierarchies.
+modulating a key value.
 
 Each *task* is triggered and will continue to operate whilst some
 specified value is maintained on a Signal K key configured as its
-*control path*.
-Control paths are required to be members of either the 'notifications.'
-or 'electrical.switches.' hierarchies.
+*task control path*.
 
 ## Example application
 Imagine a ship with an electrical lubrication pump that delivers grease
@@ -86,8 +83,9 @@ looks like this.
     The general format is '*path*[:*trigger*]'.
     <p>
     When the value on the specified *path* becomes equal to *trigger*
-    then the associated task will start, stopping if and when the value
-    on *path* no longer matches *trigger*.
+    (or to 1 if *trigger* is not supplied) then the associated task will
+    start, stopping if and when the value on *path* no longer matches
+    *trigger*.
     <p>
     Here are some examples of valid *controlPath*s.
     <p>
@@ -102,8 +100,8 @@ looks like this.
     <p>
     'notifications.mynotification:alert'.
     If *path* specifies a key in the 'notifications.' hierarchy then
-    *trigger* is assumed to refer to a notification state that should
-    operate the associated task.
+    *trigger* must specify a notification state that should operate the
+    associated task.
     </dd>
     <dt>Activities (*activities*)</dt>
     <dd>
@@ -113,6 +111,8 @@ looks like this.
     <dl>
       <dt>Activity name (*name*)</dt>
       <dd>
+      Optional string value giving a name to the activity that will be
+      used in notification and logging.
       </dd>
       <dt>Process control path (*processControlPath*)</dt>
       <dd>
