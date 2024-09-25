@@ -83,25 +83,29 @@ looks like this.
     </dd>
     <dt>Control path (*controlPath*)</dt>
     <dd>
-    Required string supplying a Signal K key and optional value
-    which will be used to trigger the task.
-    The plugin understands three control path formats.
-    <ul>
-      <li>
-        '*'.
-        The task will operate when the specified key has the value 1.
-      </li>
-      <li>
-        'notifications.*'.
-        The task will operate when a notification is present on the
-        specified key.
-      </li>
-      <li>
-        'notifications.\*:*state*'.
-        The task will operate when a notification with a state value of
-        *state* is present on the specified key.
-      </li>
-    </ul>
+    Required string supplying a Signal K key and optional trigger
+    value.
+    The general format is '*path*[:*trigger*]'.
+    <p>
+    When the value on the specified *path* becomes equal *trigger* then
+    the associated task will start, stopping if and when the key value
+    no longer matches the trigger value.
+    <p>
+    Here are some examples of valid *controlPath*s.
+    <p>
+    'electrical.switches.bank.0.15.state'.
+    In this case *trigger* is omitted forcing an internal default to
+    1 making this style useful with Signal K switches and all keys that
+    present a binary value.
+    <p>
+    'electrical.chargers.276.chargingMode:inverting'.
+    In this case a *trigger* is supplied and when the value on *path*
+    exactly matches *trigger* the associated task will operate.
+    <p>
+    'notifications.mynotification:alert'.
+    If *path* specifies a key in the 'notifications.' hierarchy then
+    *trigger* is assumed to refer to a notification state that should
+    operate the associated task.
     </dd>
     <dt>Activities (*activities*)</dt>
     <dd>
