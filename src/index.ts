@@ -257,7 +257,7 @@ module.exports = function(app: any) {
                 case 0:
                   app.debug(`Stopping task '${task.name}'`);
                   activeTasks = activeTasks.filter((e) => (e !== task.name));
-                  app.setPluginStatus((activeTasks.length === 0)?'Standing by.':`Operating: ${activeTasks.join(',')}`);             
+                  app.setPluginStatus((activeTasks.length === 0)?'Standing by':`Operating: ${activeTasks.join(',')}`);             
                   if (child != null) child.send({ "action": "STOP" });
                   break;
                 default:
