@@ -76,7 +76,7 @@ looks like this.
     <dd>
     Required string naming the task being configured.
     </dd>
-    <dt>Task control path (*taskControlPath*)</dt>
+    <dt>Task control path (*controlPath*)</dt>
     <dd>
     Required string supplying a Signal K key and optional trigger
     value.
@@ -114,7 +114,7 @@ looks like this.
       Optional string value giving a name to the activity that will be
       used in notification and logging.
       </dd>
-      <dt>Process control path (*processControlPath*)</dt>
+      <dt>Process control path (*path*)</dt>
       <dd>
       Required string supplying a Signal K key and optional values
       that will be used to flag ON and OFF states.
