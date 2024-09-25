@@ -17,7 +17,6 @@ Control paths are required to be members of either the 'notifications.'
 or 'electrical.switches.' hierarchies.
 
 ## Example application
-
 Imagine a ship with an electrical lubrication pump that delivers grease
 directly to the propeller shaft bearing.
 We want to ensure that the bearing is well greased at the beginning of every
@@ -69,7 +68,6 @@ looks like this.
 ```
 
 ## Configuration
-
 <dl>
   <dt>Scheduler tasks (*tasks*)</dt>
   <dd>
@@ -81,15 +79,15 @@ looks like this.
     <dd>
     Required string naming the task being configured.
     </dd>
-    <dt>Control path (*controlPath*)</dt>
+    <dt>Task control path (*taskControlPath*)</dt>
     <dd>
     Required string supplying a Signal K key and optional trigger
     value.
     The general format is '*path*[:*trigger*]'.
     <p>
-    When the value on the specified *path* becomes equal *trigger* then
-    the associated task will start, stopping if and when the key value
-    no longer matches the trigger value.
+    When the value on the specified *path* becomes equal to *trigger*
+    then the associated task will start, stopping if and when the value
+    on *path* no longer matches *trigger*.
     <p>
     Here are some examples of valid *controlPath*s.
     <p>
@@ -115,46 +113,45 @@ looks like this.
     <dl>
       <dt>Activity name (*name*)</dt>
       <dd>
-      Required string supplying a name for this activity which will be
-      used in messaging and logging.
       </dd>
-      <dt>Process control path (*path*)</dt>
+      <dt>Process control path (*processControlPath*)</dt>
       <dd>
-      Required string specifying the Signal K key which should be
-      updated when start and stop events occur.
-      The specified path must be in either the 'electrical.switches.'
-      or 'notifications.' trees and four forms are possible.
-      <ul>
-        <li>
-        'electrical.switches.*'.
-        The start event will update the key with the value 1; the stop
-        event will update the key with the value 0.
-        </li>
-        <li>
-        'notifications.*'.
-        The start event will update the key with a notification with
-        state 'normal'; the stop event will remove the notification on
-        key.
-        </li>
-        <li>
-        'notifications.*:onstate'.
-        The start event will update the key with a notification with
-        state '*onstate*'; the stop event will remove the notification on
-        key.
-        </li>
-        <li>
-        'notifications.*:onstate:offstate'.
-        The start event will update the key with a notification with
-        state '*onstate*'; the stop event will update the key with a
-        notification with state 'offstate'.
-        </li>
-      </ul>
+      Required string supplying a Signal K key and optional values
+      that will be used to flag ON and OFF states.
+      The general format is '*path*[:*onState*[:*offState*]]'.
+      <p>
+      The value on *path* will be updated to *onState* when the
+      associated activity starts.
+      If *offState* is omitted, then *path* will be set to null when
+      the activity stops and otherwise to *offState*.
+      If both *onState* and *offState* are omitted then they will
+      normally default to 1 and 0 respectively.
+      <p>
+      Here are some examples of valid *processControlPath*s.
+      <p>
+      'electrical.switches.bank.12.4.state'.
+      The activity start event will update the key with the value 1;
+      the stop event will update the key with the value 0.
+      <p>
+      'notifications.mycontrolpath'.
+      The activity start event will issue a notification with state
+      'normal' (a built in default); the stop event will delete the
+      notification.
+      <p>
+      'notifications.mycontrolpath:alert'
+      The activity start event will issue a notification with state
+      'alert'; the stop event will delete the notification.
+      <p>
+      'notifications.mycontrolpath:alarm:normal'
+      The activity start event will issue a notification with state
+      'alarm'; the stop event will issue a notification with state
+      'normal'.
       </dd>
       <dt>Activity duration in seconds (*duration*)</dt>
       <dd>
       Number seconds between activity start and stop events.
       </dd>
-      <dt>Delay start by this many seconds (*delay*)</dt>
+      <dt>Delay start event by this many seconds (*delay*)</dt>
       <dd>
       Number of seconds between the activity being started and the
       issuing of a start event.
@@ -166,6 +163,5 @@ looks like this.
     </dl>
   </dl>
 </dl>
-# Author
-
+## Author
 Paul Reeve <*preeve_at_pdjr_dot_eu*>
