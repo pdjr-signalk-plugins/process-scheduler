@@ -181,12 +181,6 @@ module.exports = function (app) {
             app.debug(`using configuration: ${JSON.stringify(options, null, 2)}`);
             // We reach this point with a validated list of tasks...
             if (options.tasks.length > 0) {
-                if (options.tasks.length == 1) {
-                    app.setPluginStatus(`Started: scheduling task '${options.tasks[0].name}'`);
-                }
-                else {
-                    app.setPluginStatus("Started: scheduling multiple tasks (see log for details)");
-                }
                 // Subscribe to each tasks trigger stream, implement a child
                 // process for each task and handles state changes on the
                 // trigger.
