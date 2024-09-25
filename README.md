@@ -14,25 +14,21 @@ specified value is maintained on a Signal K key configured as its
 *task control path*.
 
 ## Example application
-Imagine a ship with an electrical lubrication pump that delivers grease
+My ship has an electrical lubrication pump that delivers grease
 directly to the propeller shaft bearing.
-We want to ensure that the bearing is well greased at the beginning of every
-voyage and lightly greased periodically during the voyage.
+I want to ensure that the bearing is well greased at the beginning
+of every voyage and lightly greased periodically during the voyage.
 
-This requirement can be met by a "lubrication" task consisting of two
+This requirement is met by a "lubrication" task consisting of two
 activities: a 'start' activity which runs once when the main engine is
 fired up and a subsequent 'iterate' activity which runs repeatedly for
 as long as the engine is running.
-The output of both activities is used to signal when the shaft
-lubrication pump should run.
+The output of both activities is used to control the operation of the
+shaft lubrication pump.
 
-Controlling execution of the lubrication task can be accomplished in
-many ways: I choose to sense the state of the engine ignition switch
-which on my ship is echoed by the value on
-'electrical.switches.bank.0.11.state'.
-
-My stern gland lubrication pump is operated by a relay on
-'electrical.switches.bank.26.5.state'.
+The state of my engine ignition switch appears on the Signal K path
+'electrical.switches.bank.0.11.state' and my stern gland lubrication pump
+is operated by a relay on 'electrical.switches.bank.26.5.state'.
 
 The plugin configuration I use for handling the shaft librication task
 looks like this.
@@ -41,7 +37,7 @@ looks like this.
 "configuration": {
   "tasks": [
     {
-      "name": "shaft lubrication",
+      "name": "shaft-lubrication",
       "controlpath": "electrical.switches.bank.0.11.state",
       "activities": [
         {
