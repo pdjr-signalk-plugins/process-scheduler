@@ -137,29 +137,30 @@ module.exports = function (app) {
                         validActivity.repeat = (activity.repeat !== undefined) ? activity.repeat : ACTIVITY_REPEAT_DEFAULT;
                         if (!activity.path)
                             throw new Error("missing activity 'path' property");
-                        if ((matches = activity.path.match(/^electrical\.switches\.(.*)$/)) && (matches.length == 2)) {
-                            validActivity.type = 'switch';
-                            validActivity.path = activity.path;
+                        if ((matches = activity.path.match(/^(notifications\..*)\:(.*)\:(.*)$/)) && (matches.length == 4)) {
+                            validActivity.path = matches[1];
+                            validActivity.onValue = matches[2];
+                            validActivity.offValue = matches[3];
+                        }
+                        else if ((matches = activity.path.match(/^(notifications\..*)\:(.*)$/)) && (matches.length == 3)) {
+                            validActivity.path = matches[1];
+                            validActivity.onValue = matches[2];
+                            validActivity.offValue = undefined;
+                        }
+                        else if ((matches = activity.path.match(/^(notifications\..*)$/)) && (matches.length == 2)) {
+                            validActivity.path = matches[1];
+                            validActivity.onValue = 'normal';
+                            validActivity.offValue = undefined;
+                        }
+                        else if ((matches = activity.path.match(/^(.*)\:(.*)\:(.*)$/)) && (matches.length == 4)) {
+                            validActivity.path = matches[1];
+                            validActivity.onValue = matches[2];
+                            validActivity.offValue = matches[3];
+                        }
+                        else if ((matches = activity.path.match(/^(.*)$/)) && (matches.length == 2)) {
+                            validActivity.path = matches[1];
                             validActivity.onValue = 1;
                             validActivity.offValue = 0;
-                        }
-                        else if ((matches = activity.path.match(/^notifications\.(.*)\:(.*)\:(.*)$/)) && (matches.length == 4)) {
-                            validActivity.type = 'notification';
-                            validActivity.path = `notifications.${matches[1]}`;
-                            validActivity.onState = matches[2];
-                            validActivity.offState = matches[3];
-                        }
-                        else if ((matches = activity.path.match(/^notifications\.(.*)\:(.*)$/)) && (matches.length == 3)) {
-                            validActivity.type = 'notification';
-                            validActivity.path = `notifications.${matches[1]}`;
-                            validActivity.onState = matches[2];
-                            validActivity.offState = 'normal';
-                        }
-                        else if ((matches = activity.path.match(/^notifications\.(.*)$/)) && (matches.length == 2)) {
-                            validActivity.type = 'notification';
-                            validActivity.path = `notifications.${matches[1]}`;
-                            validActivity.onState = 'normal';
-                            validActivity.offState = undefined;
                         }
                         else
                             throw new Error("invalid activity control 'path' property");
@@ -194,9 +195,6 @@ module.exports = function (app) {
                     if (task.controlPathObject) {
                         var stream = app.streambundle.getSelfStream(task.controlPathObject.path);
                         switch (task.controlPathObject.type) {
-                            case 'switch':
-                                stream = stream.map((s, v) => ((v == s) ? 1 : 0), task.controlPathObject.onValue);
-                                break;
                             case 'notification':
                                 if (task.controlPathObject.onValue === undefined) {
                                     stream = stream.map((v) => (v !== null) ? 1 : 0);
@@ -204,6 +202,9 @@ module.exports = function (app) {
                                 else {
                                     stream = stream.map((s, v) => ((v.state == s) ? 1 : 0), task.controlPathObject.onValue);
                                 }
+                                break;
+                            default:
+                                stream = stream.map((s, v) => ((v == s) ? 1 : 0), task.controlPathObject.onValue);
                                 break;
                         }
                         // Create a child process for executing the task's
@@ -217,31 +218,27 @@ module.exports = function (app) {
                             app.debug(`received message from child ${JSON.stringify(message)}`);
                             switch (message.action) {
                                 case 1:
-                                    switch (message.activity.type) {
-                                        case 'switch':
-                                            app.putSelfPath(message.activity.path, 1, (d) => app.debug(`put response: ${JSON.stringify(d)}`));
-                                            break;
-                                        case 'notification':
-                                            delta.addValue(message.activity.path, { state: message.activity.onstate, method: [], message: 'Scheduler ON event' }).commit().clear();
-                                            break;
-                                        default:
-                                            break;
+                                    if (!message.activity.path.startsWith('notifications.')) {
+                                        app.putSelfPath(message.activity.path, message.activity.onValue, (d) => app.debug(`put response: ${JSON.stringify(d)}`));
+                                    }
+                                    else {
+                                        delta.addValue(message.activity.path, { state: message.activity.onValue, method: [], message: 'Scheduler ON event' }).commit().clear();
                                     }
                                     break;
                                 case 0:
-                                    switch (message.activity.type) {
-                                        case 'switch':
-                                            app.putSelfPath(message.activity.path, 0, (d) => app.debug(`put response: ${JSON.stringify(d)}`));
-                                            break;
-                                        case 'notification':
-                                            if (message.activity.offState) {
-                                                delta.addValue(message.activity.path, { state: message.activity.offstate, method: [], message: 'Scheduler OFF event' }).commit().clear();
-                                            }
-                                            else {
-                                                delta.addValue(message.activity.path, null).commit().clear();
-                                            }
-                                            break;
+                                    if (!message.activity.path.startsWith('notifications.')) {
+                                        app.putSelfPath(message.activity.path, message.activity.offValue, (d) => app.debug(`put response: ${JSON.stringify(d)}`));
                                     }
+                                    else {
+                                        if (message.activity.offState) {
+                                            delta.addValue(message.activity.path, { state: message.activity.offValue, method: [], message: 'Scheduler OFF event' }).commit().clear();
+                                        }
+                                        else {
+                                            delta.addValue(message.activity.path, null).commit().clear();
+                                        }
+                                    }
+                                    break;
+                                default:
                                     break;
                             }
                         });
