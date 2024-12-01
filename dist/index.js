@@ -79,12 +79,14 @@ const PLUGIN_SCHEMA = {
     "required": ["tasks"]
 };
 const PLUGIN_UISCHEMA = {};
+const CHILD_TASK_FILENAME = 'task.js';
 const ACTIVITY_NAME_DEFAULT = 'activity';
 const ACTIVITY_DELAY_DEFAULT = 0;
 const ACTIVITY_REPEAT_DEFAULT = 1;
 module.exports = function (app) {
-    let unsubscribes = [];
-    let activeTasks = [];
+    var unsubscribes = [];
+    var pluginConfiguration = {};
+    var activeTaskNames = [];
     const plugin = {
         id: PLUGIN_ID,
         name: PLUGIN_NAME,
@@ -92,187 +94,44 @@ module.exports = function (app) {
         schema: PLUGIN_SCHEMA,
         uiSchema: PLUGIN_UISCHEMA,
         start: function (options) {
-            let delta = new signalk_libdelta_1.Delta(app, plugin.id);
-            let matches;
-            options.tasks = (options.tasks || []).reduce((a, task) => {
-                let validTask = {};
-                try {
-                    if (task.name)
-                        validTask.name = task.name;
-                    else
-                        throw new Error("missing 'name' property");
-                    if (task.controlPath)
-                        validTask.controlPath = task.controlPath;
-                    else
-                        throw new Error("missing 'controlPath' property");
-                    validTask.controlPathObject = {};
-                    if ((matches = task.controlPath.match(/^notifications\.(.*)\:(.*)$/)) && (matches.length == 3)) {
-                        validTask.controlPathObject.type = 'notification';
-                        validTask.controlPathObject.path = `notifications.${matches[1]}`;
-                        validTask.controlPathObject.onValue = matches[2];
-                    }
-                    else if ((matches = task.controlPath.match(/^notifications\.(.*)$/)) && (matches.length == 2)) {
-                        validTask.controlPathObject.type = 'notification';
-                        validTask.controlPathObject.path = `notifications.${matches[1]}`;
-                        validTask.controlPathObject.onValue = undefined;
-                    }
-                    else if (matches = task.controlPath.match(/^(.*):(.*)$/)) {
-                        validTask.controlPathObject.type = 'switch';
-                        validTask.controlPathObject.path = matches[1];
-                        validTask.controlPathObject.onValue = matches[2];
-                    }
-                    else if (matches = task.controlPath.match(/^(.*)$/)) {
-                        validTask.controlPathObject.type = 'switch';
-                        validTask.controlPathObject.path = matches[1];
-                        validTask.controlPathObject.onValue = 1;
-                    }
-                    else
-                        throw new Error("invalid 'controlPath' property");
-                    if ((!task.activities) || (!Array.isArray(task.activities)) || (task.activities.length == 0))
-                        throw new Error("missing 'activities' array property");
-                    var activityindex = 0;
-                    validTask.activities = task.activities.reduce((a, activity) => {
-                        let validActivity = {};
-                        validActivity.name = `${validTask.name}[` + `${(activity.name !== undefined) ? activity.name : ACTIVITY_NAME_DEFAULT}-${activityindex++}` + ']',
-                            validActivity.delay = (activity.delay !== undefined) ? activity.delay : ACTIVITY_DELAY_DEFAULT;
-                        validActivity.repeat = (activity.repeat !== undefined) ? activity.repeat : ACTIVITY_REPEAT_DEFAULT;
-                        if (!activity.path)
-                            throw new Error("missing activity 'path' property");
-                        if ((matches = activity.path.match(/^(notifications\..*)\:(.*)\:(.*)$/)) && (matches.length == 4)) {
-                            validActivity.path = matches[1];
-                            validActivity.onValue = matches[2];
-                            validActivity.offValue = matches[3];
-                        }
-                        else if ((matches = activity.path.match(/^(notifications\..*)\:(.*)$/)) && (matches.length == 3)) {
-                            validActivity.path = matches[1];
-                            validActivity.onValue = matches[2];
-                            validActivity.offValue = undefined;
-                        }
-                        else if ((matches = activity.path.match(/^(notifications\..*)$/)) && (matches.length == 2)) {
-                            validActivity.path = matches[1];
-                            validActivity.onValue = 'normal';
-                            validActivity.offValue = undefined;
-                        }
-                        else if ((matches = activity.path.match(/^(.*)\:(.*)\:(.*)$/)) && (matches.length == 4)) {
-                            validActivity.path = matches[1];
-                            validActivity.onValue = matches[2];
-                            validActivity.offValue = matches[3];
-                        }
-                        else if ((matches = activity.path.match(/^(.*)$/)) && (matches.length == 2)) {
-                            validActivity.path = matches[1];
-                            validActivity.onValue = 1;
-                            validActivity.offValue = 0;
-                        }
-                        else
-                            throw new Error("invalid activity control 'path' property");
-                        if (!activity.duration)
-                            throw new Error("missing 'duration' property");
-                        validActivity.duration = activity.duration;
-                        a.push(validActivity);
-                        return (a);
-                    }, []);
-                    a.push(validTask);
-                }
-                catch (e) {
-                    app.debug(`dropping task with invalid configuration (${e.message})`);
-                }
-                return (a);
-            }, []);
-            app.debug(`using configuration: ${JSON.stringify(options, null, 2)}`);
+            pluginConfiguration = makePluginConfiguration(options);
+            app.debug(`using configuration: ${JSON.stringify(pluginConfiguration, null, 2)}`);
             // We reach this point with a validated list of tasks...
-            if (options.tasks.length > 0) {
+            if (pluginConfiguration.tasks.length > 0) {
                 // Subscribe to each tasks trigger stream, implement a child
                 // process for each task and handles state changes on the
                 // trigger.
-                unsubscribes = options.tasks.reduce((a, task) => {
+                unsubscribes = pluginConfiguration.tasks.reduce((a, task) => {
                     // Get a trigger stream for the task controlpath that deals
                     // with switch and notification triggers.
-                    if (task.controlPathObject) {
-                        var stream = app.streambundle.getSelfStream(task.controlPathObject.path);
-                        switch (task.controlPathObject.type) {
-                            case 'notification':
-                                if (task.controlPathObject.onValue === undefined) {
-                                    stream = stream.map((v) => (v !== null) ? 1 : 0);
-                                }
-                                else {
-                                    stream = stream.map((s, v) => ((v.state == s) ? 1 : 0), task.controlPathObject.onValue);
-                                }
+                    var triggerStream = createTriggerStream(task.controlPathObject);
+                    var childProcess = createChildProcessForTask(CHILD_TASK_FILENAME, task);
+                    // Subscribe to the trigger <stream> and wait for the
+                    // arrival of values saying whether to start or stop task
+                    // activities and respond by sending appropriate control
+                    // messages to the child process.
+                    a.push(triggerStream.skipDuplicates().onValue((state) => {
+                        switch (state) {
+                            case 1:
+                                app.debug(`Starting task '${task.name}'`);
+                                activeTaskNames.push(task.name || '');
+                                app.setPluginStatus(`Operating: ${activeTaskNames.join(',')}`);
+                                if (childProcess != null)
+                                    childProcess.send({ "action": "START", "activities": task.activities });
+                                break;
+                            case 0:
+                                app.debug(`Stopping task '${task.name}'`);
+                                activeTaskNames = activeTaskNames.filter((e) => (e !== task.name));
+                                app.setPluginStatus((activeTaskNames.length === 0) ? 'Standing by' : `Operating: ${activeTaskNames.join(',')}`);
+                                if (childProcess != null)
+                                    childProcess.send({ "action": "STOP" });
                                 break;
                             default:
-                                stream = stream.map((s, v) => ((v == s) ? 1 : 0), task.controlPathObject.onValue);
+                                app.debug(`Ignoring invalid start task request '${state}'`);
                                 break;
                         }
-                        // Create a child process for executing the task's
-                        // activities.
-                        var child = (0, node_child_process_1.fork)(`${__dirname}/task.js`);
-                        app.debug(`created child process ${child}`);
-                        // The child sends a message saying whether an activity
-                        // should turn its output on or off, so we manage that her
-                        // for both switch and notification outputs.
-                        child.on('message', (message) => {
-                            switch (message.action) {
-                                case 1:
-                                    if (!message.activity.path.startsWith('notifications.')) {
-                                        app.debug(`Starting activity '${message.activity.name}' (setting '${message.activity.path}' to '${message.activity.onValue}')`);
-                                        app.putSelfPath(message.activity.path, message.activity.onValue, (d) => app.debug(`put response: ${JSON.stringify(d)}`));
-                                    }
-                                    else {
-                                        app.debug(`Starting activity '${message.activity.name}' (issuing '${message.activity.onValue}' notification on '${message.activity.path}')`);
-                                        delta.addValue(message.activity.path, { state: message.activity.onValue, method: [], message: 'Scheduler ON event' }).commit().clear();
-                                    }
-                                    break;
-                                case 0:
-                                    if (!message.activity.path.startsWith('notifications.')) {
-                                        app.debug(`Stopping activity '${message.activity.name}' (setting '${message.activity.path}' to '${message.activity.onValue}')`);
-                                        app.putSelfPath(message.activity.path, message.activity.offValue, (d) => app.debug(`put response: ${JSON.stringify(d)}`));
-                                    }
-                                    else {
-                                        if (message.activity.offState) {
-                                            app.debug(`Stopping activity '${message.activity.name}' (issuing '${message.activity.onValue}' notification on '${message.activity.path}')`);
-                                            delta.addValue(message.activity.path, { state: message.activity.offValue, method: [], message: 'Scheduler OFF event' }).commit().clear();
-                                        }
-                                        else {
-                                            app.debug(`Stopping activity '${message.activity.name}' (cancelling notification on '${message.activity.path}')`);
-                                            delta.addValue(message.activity.path, null).commit().clear();
-                                        }
-                                    }
-                                    break;
-                                default:
-                                    app.debug(`Ignoring activity '${message.activity.name}' (bad action ${message.activity.action})`);
-                                    break;
-                            }
-                        });
-                        child.on('exit', () => {
-                            app.setPluginStatus(`Stopping scheduling of: ${task.name}`);
-                            child = null;
-                        });
-                        // Subscribe to the trigger <stream> and wait for the
-                        // arrival of values saying whether to start or stop task
-                        // activities and respond by sending appropriate control
-                        // messages to the child process.
-                        a.push(stream.skipDuplicates().onValue((state) => {
-                            switch (state) {
-                                case 1:
-                                    app.debug(`Starting task '${task.name}'`);
-                                    activeTasks.push(task.name || '');
-                                    app.setPluginStatus(`Operating: ${activeTasks.join(',')}`);
-                                    if (child != null)
-                                        child.send({ "action": "START", "activities": task.activities });
-                                    break;
-                                case 0:
-                                    app.debug(`Stopping task '${task.name}'`);
-                                    activeTasks = activeTasks.filter((e) => (e !== task.name));
-                                    app.setPluginStatus((activeTasks.length === 0) ? 'Standing by' : `Operating: ${activeTasks.join(',')}`);
-                                    if (child != null)
-                                        child.send({ "action": "STOP" });
-                                    break;
-                                default:
-                                    app.debug(`Ignoring invalid start task request '${state}'`);
-                                    break;
-                            }
-                        }));
-                        return (a);
-                    }
+                    }));
+                    return (a);
                 }, []);
             }
             else {
@@ -284,5 +143,153 @@ module.exports = function (app) {
             unsubscribes = [];
         }
     };
+    function makePluginConfiguration(options) {
+        var matches;
+        var pluginConfiguration = {};
+        pluginConfiguration.tasks = (options.tasks || []).reduce((a, taskOptions) => {
+            if (!taskOptions.name)
+                throw new Error("missing 'name' property");
+            if (!taskOptions.controlPath)
+                throw new Error("missing 'controlPath' property");
+            var task = {
+                name: taskOptions.name,
+                controlPath: taskOptions.controlPath,
+                controlPathObject: {},
+                activities: []
+            };
+            if ((matches = taskOptions.controlPath.match(/^notifications\.(.*)\:(.*)$/)) && (matches.length == 3)) {
+                task.controlPathObject.type = 'notification';
+                task.controlPathObject.path = `notifications.${matches[1]}`;
+                task.controlPathObject.onValue = matches[2];
+            }
+            else if ((matches = task.controlPath.match(/^notifications\.(.*)$/)) && (matches.length == 2)) {
+                task.controlPathObject.type = 'notification';
+                task.controlPathObject.path = `notifications.${matches[1]}`;
+                task.controlPathObject.onValue = undefined;
+            }
+            else if (matches = task.controlPath.match(/^(.*):(.*)$/)) {
+                task.controlPathObject.type = 'switch';
+                task.controlPathObject.path = matches[1];
+                task.controlPathObject.onValue = matches[2];
+            }
+            else if (matches = task.controlPath.match(/^(.*)$/)) {
+                task.controlPathObject.type = 'switch';
+                task.controlPathObject.path = matches[1];
+                task.controlPathObject.onValue = 1;
+            }
+            else
+                throw new Error("invalid 'controlPath' property");
+            if ((!taskOptions.activities) || (!Array.isArray(taskOptions.activities)) || (taskOptions.activities.length == 0))
+                throw new Error("missing 'activities' array property");
+            var activityindex = 0;
+            task.activities = taskOptions.activities.reduce((a, activityOptions) => {
+                if (!activityOptions.path)
+                    throw new Error("missing activity 'path' property");
+                if (!activityOptions.duration)
+                    throw new Error("missing 'duration' property");
+                var activity = {
+                    name: `${task.name}[` + `${(activityOptions.name !== undefined) ? activityOptions.name : ACTIVITY_NAME_DEFAULT}-${activityindex++}` + ']',
+                    delay: (activityOptions.delay !== undefined) ? activityOptions.delay : ACTIVITY_DELAY_DEFAULT,
+                    repeat: (activityOptions.repeat !== undefined) ? activityOptions.repeat : ACTIVITY_REPEAT_DEFAULT,
+                    duration: activityOptions.duration
+                };
+                if ((matches = activityOptions.path.match(/^(notifications\..*)\:(.*)\:(.*)$/)) && (matches.length == 4)) {
+                    activity.path = matches[1];
+                    activity.onValue = matches[2];
+                    activity.offValue = matches[3];
+                }
+                else if ((matches = activityOptions.path.match(/^(notifications\..*)\:(.*)$/)) && (matches.length == 3)) {
+                    activity.path = matches[1];
+                    activity.onValue = matches[2];
+                    activity.offValue = undefined;
+                }
+                else if ((matches = activityOptions.path.match(/^(notifications\..*)$/)) && (matches.length == 2)) {
+                    activity.path = matches[1];
+                    activity.onValue = 'normal';
+                    activity.offValue = undefined;
+                }
+                else if ((matches = activityOptions.path.match(/^(.*)\:(.*)\:(.*)$/)) && (matches.length == 4)) {
+                    activity.path = matches[1];
+                    activity.onValue = matches[2];
+                    activity.offValue = matches[3];
+                }
+                else if ((matches = activityOptions.path.match(/^(.*)$/)) && (matches.length == 2)) {
+                    activity.path = matches[1];
+                    activity.onValue = 1;
+                    activity.offValue = 0;
+                }
+                else
+                    throw new Error("invalid activity control 'path' property");
+                a.push(activity);
+                return (a);
+            }, []);
+            a.push(task);
+            return (a);
+        }, []);
+        return (pluginConfiguration);
+    }
+    function createTriggerStream(controlPathObject) {
+        var stream = app.streambundle.getSelfStream(controlPathObject.path);
+        switch (controlPathObject.type) {
+            case 'notification':
+                if (controlPathObject.onValue === undefined) {
+                    return (stream.map((from) => (from !== null) ? 1 : 0));
+                }
+                else {
+                    return (stream.map((from) => ((from.state == controlPathObject.onValue) ? 1 : 0)));
+                }
+                break;
+            default:
+                return (stream.map((from) => ((from.state == controlPathObject.onValue) ? 1 : 0)));
+                break;
+        }
+    }
+    function createChildProcessForTask(child, task) {
+        // Create a child process for executing the task's activities.
+        var childProcess = (0, node_child_process_1.fork)(`${__dirname}/${child}`);
+        app.debug(`created child process ${child}`);
+        // The child sends a message saying whether an activity
+        // should turn its output on or off, so we manage that here
+        // for both switch and notification outputs.
+        childProcess.on('message', (message) => {
+            var delta = new signalk_libdelta_1.Delta(app, plugin.id);
+            switch (message.action) {
+                case 1:
+                    if (!message.activity.path.startsWith('notifications.')) {
+                        app.debug(`Starting activity '${message.activity.name}' (setting '${message.activity.path}' to '${message.activity.onValue}')`);
+                        app.putSelfPath(message.activity.path, message.activity.onValue, (d) => app.debug(`put response: ${JSON.stringify(d)}`));
+                    }
+                    else {
+                        app.debug(`Starting activity '${message.activity.name}' (issuing '${message.activity.onValue}' notification on '${message.activity.path}')`);
+                        delta.addValue(message.activity.path, { state: message.activity.onValue, method: [], message: 'Scheduler ON event' }).commit().clear();
+                    }
+                    break;
+                case 0:
+                    if (!message.activity.path.startsWith('notifications.')) {
+                        app.debug(`Stopping activity '${message.activity.name}' (setting '${message.activity.path}' to '${message.activity.onValue}')`);
+                        app.putSelfPath(message.activity.path, message.activity.offValue, (d) => app.debug(`put response: ${JSON.stringify(d)}`));
+                    }
+                    else {
+                        if (message.activity.offState) {
+                            app.debug(`Stopping activity '${message.activity.name}' (issuing '${message.activity.onValue}' notification on '${message.activity.path}')`);
+                            delta.addValue(message.activity.path, { state: message.activity.offValue, method: [], message: 'Scheduler OFF event' }).commit().clear();
+                        }
+                        else {
+                            app.debug(`Stopping activity '${message.activity.name}' (cancelling notification on '${message.activity.path}')`);
+                            delta.addValue(message.activity.path, null).commit().clear();
+                        }
+                    }
+                    break;
+                default:
+                    app.debug(`Ignoring activity '${message.activity.name}' (bad action ${message.activity.action})`);
+                    break;
+            }
+        });
+        childProcess.on('exit', () => {
+            app.setPluginStatus(`Stopping scheduling of: ${task.name}`);
+            childProcess = null;
+        });
+        return (childProcess);
+    }
     return (plugin);
 };

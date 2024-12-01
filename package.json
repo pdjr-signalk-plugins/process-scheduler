@@ -25,6 +25,7 @@
   },
   "homepage": "https://github.com/pdjr-signalk/pdjr-skplugin-process-scheduler#readme",
   "dependencies": {
+    "baconjs": "^3.0.19",
     "child-process": "^1.0.2",
     "save-dev": "^0.0.1-security",
     "signalk-libdelta": "github:pdjr-signalk/signalk-libdelta"
