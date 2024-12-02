@@ -28,7 +28,8 @@
     "baconjs": "^3.0.19",
     "child-process": "^1.0.2",
     "save-dev": "^0.0.1-security",
-    "signalk-libdelta": "github:pdjr-signalk/signalk-libdelta"
+    "signalk-libdelta": "github:pdjr-signalk/signalk-libdelta",
+    "signalk-libpluginstatus": "github:pdjr-signalk/signalk-libpluginstatus"
   },
   "devDependencies": {
     "@types/node": "^22.5.5",

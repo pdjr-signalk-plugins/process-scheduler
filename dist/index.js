@@ -17,7 +17,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const node_child_process_1 = require("node:child_process");
 const signalk_libdelta_1 = require("signalk-libdelta");
-const TransientPluginStatus_1 = require("./TransientPluginStatus");
+const signalk_libpluginstatus_1 = require("signalk-libpluginstatus");
 const PLUGIN_ID = "process-scheduler";
 const PLUGIN_NAME = "pdjr-skplugin-process-scheduler";
 const PLUGIN_DESCRIPTION = "Simple process scheduling";
@@ -100,7 +100,7 @@ module.exports = function (app) {
                 pluginConfiguration = makePluginConfiguration(options);
                 app.debug(`using configuration: ${JSON.stringify(pluginConfiguration, null, 2)}`);
                 if (pluginConfiguration.tasks.length > 0) {
-                    pluginStatus = new TransientPluginStatus_1.TransientPluginStatus(app, `Started: scheduling ${pluginConfiguration.tasks.length} tasks`);
+                    pluginStatus = new signalk_libpluginstatus_1.PluginStatus(app, `Started: scheduling ${pluginConfiguration.tasks.length} tasks`);
                     unsubscribes = pluginConfiguration.tasks.reduce((a, task) => {
                         // Get a trigger stream for the task controlpath that deals
                         // with switch and notification triggers.

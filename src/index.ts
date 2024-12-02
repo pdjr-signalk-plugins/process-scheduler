@@ -17,7 +17,7 @@
 import { EventStream } from 'baconjs';
 import { ChildProcess, fork } from 'node:child_process';
 import { Delta } from 'signalk-libdelta';
-import { TransientPluginStatus } from './TransientPluginStatus';
+import { PluginStatus } from 'signalk-libpluginstatus';
 
 const PLUGIN_ID: string = "process-scheduler"
 const PLUGIN_NAME: string = "pdjr-skplugin-process-scheduler"
@@ -89,7 +89,7 @@ const ACTIVITY_DELAY_DEFAULT: number = 0
 const ACTIVITY_REPEAT_DEFAULT: number = 1
 
 module.exports = function(app: any) {
-  var pluginStatus: TransientPluginStatus;
+  var pluginStatus: PluginStatus;
 	var unsubscribes: (() => void)[] = [];
   var pluginConfiguration: PluginConfiguration = <PluginConfiguration>{};
   var activeTaskNames: string[] = [];
@@ -108,7 +108,7 @@ module.exports = function(app: any) {
         app.debug(`using configuration: ${JSON.stringify(pluginConfiguration, null, 2)}`);
 
         if (pluginConfiguration.tasks.length > 0) {
-          pluginStatus = new TransientPluginStatus(app, `Started: scheduling ${pluginConfiguration.tasks.length} tasks`);
+          pluginStatus = new PluginStatus(app, `Started: scheduling ${pluginConfiguration.tasks.length} tasks`);
           unsubscribes = pluginConfiguration.tasks.reduce((a: any, task: Task) => {
             // Get a trigger stream for the task controlpath that deals
             // with switch and notification triggers.
