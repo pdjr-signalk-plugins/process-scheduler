@@ -114,18 +114,18 @@ module.exports = function (app) {
                             switch (state) {
                                 case 1:
                                     activeTaskNames.push(task.name || '');
-                                    pluginStatus.setStatus(`Starting task ${task.name}`);
+                                    pluginStatus.setStatus(`Starting task '${task.name}'`);
                                     if (childProcess != null)
                                         childProcess.send({ "action": "START", "activities": task.activities });
                                     break;
                                 case 0:
                                     activeTaskNames = activeTaskNames.filter((e) => (e !== task.name));
-                                    pluginStatus.setStatus(`Stopping task ${task.name}`);
+                                    pluginStatus.setStatus(`Stopping task '${task.name}'`);
                                     if (childProcess != null)
                                         childProcess.send({ "action": "STOP" });
                                     break;
                                 default:
-                                    pluginStatus.setStatus(`Ignoring invalid start task request '${state}'`);
+                                    pluginStatus.setStatus(`Ignoring invalid start task request '${state}'on task '${task.name}'`);
                                     break;
                             }
                         }));
