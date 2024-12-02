@@ -19,7 +19,7 @@ class TransientPluginStatus {
             clearTimeout(TransientPluginStatus.revertTimeout);
             TransientPluginStatus.revertTimeout = undefined;
         }
-        TransientPluginStatus.app.setPluginStatus(message);
+        TransientPluginStatus.app.setPluginStatus(`${message}...`);
         TransientPluginStatus.revertTimeout = setTimeout(this.revertStatus, TransientPluginStatus.revertSeconds * 1000);
     }
     revertStatus() {
