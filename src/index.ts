@@ -17,6 +17,7 @@
 import { EventStream } from 'baconjs';
 import { ChildProcess, fork } from 'node:child_process';
 import { Delta } from 'signalk-libdelta';
+import { TransientPluginStatus } from './TransientPluginStatus';
 
 const PLUGIN_ID: string = "process-scheduler"
 const PLUGIN_NAME: string = "pdjr-skplugin-process-scheduler"
@@ -88,6 +89,7 @@ const ACTIVITY_DELAY_DEFAULT: number = 0
 const ACTIVITY_REPEAT_DEFAULT: number = 1
 
 module.exports = function(app: any) {
+  var pluginStatus: TransientPluginStatus;
 	var unsubscribes: (() => void)[] = [];
   var pluginConfiguration: PluginConfiguration = <PluginConfiguration>{};
   var activeTaskNames: string[] = [];
@@ -100,10 +102,12 @@ module.exports = function(app: any) {
     uiSchema: PLUGIN_UISCHEMA,
   
 	  start: function(options: any) {
+
       pluginConfiguration = makePluginConfiguration(options);
       app.debug(`using configuration: ${JSON.stringify(pluginConfiguration, null, 2)}`);
 
       if (pluginConfiguration.tasks.length > 0) {
+        pluginStatus = new TransientPluginStatus(app, `Started: scheduling ${pluginConfiguration.tasks.length} tasks`);
         
         unsubscribes = pluginConfiguration.tasks.reduce((a: any, task: Task) => {
           // Get a trigger stream for the task controlpath that deals
@@ -121,13 +125,13 @@ module.exports = function(app: any) {
               case 1:
                 app.debug(`Starting task '${task.name}'`);
                 activeTaskNames.push(task.name || '');           
-                app.setPluginStatus(`Operating: ${activeTaskNames.join(',')}`);             
+                pluginStatus.setStatus(`Starting task ${task.name}`);             
                 if (childProcess != null) childProcess.send({ "action": "START", "activities": task.activities });
                 break;
               case 0:
                 app.debug(`Stopping task '${task.name}'`);
                 activeTaskNames = activeTaskNames.filter((e) => (e !== task.name));
-                app.setPluginStatus((activeTaskNames.length === 0)?'Standing by':`Operating: ${activeTaskNames.join(',')}`);             
+                pluginStatus.setStatus(`Stopping task ${task.name}`);             
                 if (childProcess != null) childProcess.send({ "action": "STOP" });
                 break;
               default:
@@ -138,7 +142,7 @@ module.exports = function(app: any) {
           return(a);
         }, []);
       } else {
-        app.setPluginStatus("Stopped: configuration includes no valid tasks");
+        pluginStatus.setDefaultStatus("Stopped: configuration includes no valid tasks");
       }
     },
 

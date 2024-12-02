@@ -17,6 +17,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const node_child_process_1 = require("node:child_process");
 const signalk_libdelta_1 = require("signalk-libdelta");
+const TransientPluginStatus_1 = require("./TransientPluginStatus");
 const PLUGIN_ID = "process-scheduler";
 const PLUGIN_NAME = "pdjr-skplugin-process-scheduler";
 const PLUGIN_DESCRIPTION = "Simple process scheduling";
@@ -84,6 +85,7 @@ const ACTIVITY_NAME_DEFAULT = 'activity';
 const ACTIVITY_DELAY_DEFAULT = 0;
 const ACTIVITY_REPEAT_DEFAULT = 1;
 module.exports = function (app) {
+    var pluginStatus;
     var unsubscribes = [];
     var pluginConfiguration = {};
     var activeTaskNames = [];
@@ -96,11 +98,8 @@ module.exports = function (app) {
         start: function (options) {
             pluginConfiguration = makePluginConfiguration(options);
             app.debug(`using configuration: ${JSON.stringify(pluginConfiguration, null, 2)}`);
-            // We reach this point with a validated list of tasks...
             if (pluginConfiguration.tasks.length > 0) {
-                // Subscribe to each tasks trigger stream, implement a child
-                // process for each task and handles state changes on the
-                // trigger.
+                pluginStatus = new TransientPluginStatus_1.TransientPluginStatus(app, `Started: scheduling ${pluginConfiguration.tasks.length} tasks`);
                 unsubscribes = pluginConfiguration.tasks.reduce((a, task) => {
                     // Get a trigger stream for the task controlpath that deals
                     // with switch and notification triggers.
@@ -115,14 +114,14 @@ module.exports = function (app) {
                             case 1:
                                 app.debug(`Starting task '${task.name}'`);
                                 activeTaskNames.push(task.name || '');
-                                app.setPluginStatus(`Operating: ${activeTaskNames.join(',')}`);
+                                pluginStatus.setStatus(`Starting task ${task.name}`);
                                 if (childProcess != null)
                                     childProcess.send({ "action": "START", "activities": task.activities });
                                 break;
                             case 0:
                                 app.debug(`Stopping task '${task.name}'`);
                                 activeTaskNames = activeTaskNames.filter((e) => (e !== task.name));
-                                app.setPluginStatus((activeTaskNames.length === 0) ? 'Standing by' : `Operating: ${activeTaskNames.join(',')}`);
+                                pluginStatus.setStatus(`Stopping task ${task.name}`);
                                 if (childProcess != null)
                                     childProcess.send({ "action": "STOP" });
                                 break;
@@ -135,7 +134,7 @@ module.exports = function (app) {
                 }, []);
             }
             else {
-                app.setPluginStatus("Stopped: configuration includes no valid tasks");
+                pluginStatus.setDefaultStatus("Stopped: configuration includes no valid tasks");
             }
         },
         stop: function () {
