@@ -96,45 +96,51 @@ module.exports = function (app) {
         schema: PLUGIN_SCHEMA,
         uiSchema: PLUGIN_UISCHEMA,
         start: function (options) {
-            pluginConfiguration = makePluginConfiguration(options);
-            app.debug(`using configuration: ${JSON.stringify(pluginConfiguration, null, 2)}`);
-            if (pluginConfiguration.tasks.length > 0) {
-                pluginStatus = new TransientPluginStatus_1.TransientPluginStatus(app, `Started: scheduling ${pluginConfiguration.tasks.length} tasks`);
-                unsubscribes = pluginConfiguration.tasks.reduce((a, task) => {
-                    // Get a trigger stream for the task controlpath that deals
-                    // with switch and notification triggers.
-                    var triggerStream = createTriggerStream(task.controlPathObject);
-                    var childProcess = createChildProcessForTask(CHILD_TASK_FILENAME, task);
-                    // Subscribe to the trigger <stream> and wait for the
-                    // arrival of values saying whether to start or stop task
-                    // activities and respond by sending appropriate control
-                    // messages to the child process.
-                    a.push(triggerStream.skipDuplicates().onValue((state) => {
-                        switch (state) {
-                            case 1:
-                                app.debug(`Starting task '${task.name}'`);
-                                activeTaskNames.push(task.name || '');
-                                pluginStatus.setStatus(`Starting task ${task.name}`);
-                                if (childProcess != null)
-                                    childProcess.send({ "action": "START", "activities": task.activities });
-                                break;
-                            case 0:
-                                app.debug(`Stopping task '${task.name}'`);
-                                activeTaskNames = activeTaskNames.filter((e) => (e !== task.name));
-                                pluginStatus.setStatus(`Stopping task ${task.name}`);
-                                if (childProcess != null)
-                                    childProcess.send({ "action": "STOP" });
-                                break;
-                            default:
-                                app.debug(`Ignoring invalid start task request '${state}'`);
-                                break;
-                        }
-                    }));
-                    return (a);
-                }, []);
+            try {
+                pluginConfiguration = makePluginConfiguration(options);
+                app.debug(`using configuration: ${JSON.stringify(pluginConfiguration, null, 2)}`);
+                if (pluginConfiguration.tasks.length > 0) {
+                    pluginStatus = new TransientPluginStatus_1.TransientPluginStatus(app, `Started: scheduling ${pluginConfiguration.tasks.length} tasks`);
+                    unsubscribes = pluginConfiguration.tasks.reduce((a, task) => {
+                        // Get a trigger stream for the task controlpath that deals
+                        // with switch and notification triggers.
+                        var triggerStream = createTriggerStream(task.controlPathObject);
+                        var childProcess = createChildProcessForTask(CHILD_TASK_FILENAME, task);
+                        // Subscribe to the trigger <stream> and wait for the
+                        // arrival of values saying whether to start or stop task
+                        // activities and respond by sending appropriate control
+                        // messages to the child process.
+                        a.push(triggerStream.skipDuplicates().onValue((state) => {
+                            switch (state) {
+                                case 1:
+                                    app.debug(`Starting task '${task.name}'`);
+                                    activeTaskNames.push(task.name || '');
+                                    pluginStatus.setStatus(`Starting task ${task.name}`);
+                                    if (childProcess != null)
+                                        childProcess.send({ "action": "START", "activities": task.activities });
+                                    break;
+                                case 0:
+                                    app.debug(`Stopping task '${task.name}'`);
+                                    activeTaskNames = activeTaskNames.filter((e) => (e !== task.name));
+                                    pluginStatus.setStatus(`Stopping task ${task.name}`);
+                                    if (childProcess != null)
+                                        childProcess.send({ "action": "STOP" });
+                                    break;
+                                default:
+                                    app.debug(`Ignoring invalid start task request '${state}'`);
+                                    break;
+                            }
+                        }));
+                        return (a);
+                    }, []);
+                }
+                else {
+                    pluginStatus.setDefaultStatus('Stopped: configuration includes no valid tasks');
+                }
             }
-            else {
-                pluginStatus.setDefaultStatus("Stopped: configuration includes no valid tasks");
+            catch (e) {
+                pluginStatus.setDefaultStatus('Stopped: bad or missing plugin configuration');
+                app.setPluginError(`${e.message}`);
             }
         },
         stop: function () {

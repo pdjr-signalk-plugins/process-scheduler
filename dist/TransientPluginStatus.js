@@ -28,7 +28,7 @@ class TransientPluginStatus {
     }
 }
 exports.TransientPluginStatus = TransientPluginStatus;
-TransientPluginStatus.DEFAULT_REVERT_SECONDS = 2;
+TransientPluginStatus.DEFAULT_REVERT_SECONDS = 10;
 TransientPluginStatus.app = undefined;
 TransientPluginStatus.defaultStatus = undefined;
 TransientPluginStatus.revertSeconds = TransientPluginStatus.DEFAULT_REVERT_SECONDS;

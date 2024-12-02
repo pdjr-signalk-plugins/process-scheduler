@@ -1,5 +1,5 @@
 export class TransientPluginStatus {
-  static DEFAULT_REVERT_SECONDS: number = 2;
+  static DEFAULT_REVERT_SECONDS: number = 10;
 
   static app: any = undefined;
   static defaultStatus: string | undefined = undefined;
