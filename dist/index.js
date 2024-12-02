@@ -250,7 +250,7 @@ module.exports = function (app) {
     function createChildProcessForTask(child, task) {
         // Create a child process for executing the task's activities.
         var childProcess = (0, node_child_process_1.fork)(`${__dirname}/${child}`);
-        app.debug(`created child process ${child}`);
+        app.debug(`creating child process for task '${task.name}'`);
         // The child sends a message saying whether an activity
         // should turn its output on or off, so we manage that here
         // for both switch and notification outputs.
