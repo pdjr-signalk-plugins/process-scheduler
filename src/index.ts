@@ -123,19 +123,17 @@ module.exports = function(app: any) {
             a.push(triggerStream.skipDuplicates().onValue((state: number) => {
               switch (state) {
                 case 1:
-                  app.debug(`Starting task '${task.name}'`);
                   activeTaskNames.push(task.name || '');           
                   pluginStatus.setStatus(`Starting task ${task.name}`);             
                   if (childProcess != null) childProcess.send({ "action": "START", "activities": task.activities });
                   break;
                 case 0:
-                  app.debug(`Stopping task '${task.name}'`);
                   activeTaskNames = activeTaskNames.filter((e) => (e !== task.name));
                   pluginStatus.setStatus(`Stopping task ${task.name}`);             
                   if (childProcess != null) childProcess.send({ "action": "STOP" });
                   break;
                 default:
-                  app.debug(`Ignoring invalid start task request '${state}'`)
+                  pluginStatus.setStatus(`Ignoring invalid start task request '${state}'`)
                   break
               }
             }));
