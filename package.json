@@ -7,7 +7,7 @@
   "signalk-plugin-enabled-by-default": true,
   "scripts": {
     "clean": "rm -rf node_modules package-lock.json *.tgz",
-    "make": "npm install && tsc",
+    "make": "npm update && tsc",
     "pack": "npm pack"
   },
   "repository": {
