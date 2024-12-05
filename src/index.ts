@@ -89,9 +89,9 @@ const ACTIVITY_DELAY_DEFAULT: number = 0
 const ACTIVITY_REPEAT_DEFAULT: number = 1
 
 module.exports = function(app: any) {
+  var pluginConfiguration: PluginConfiguration;
   var pluginStatus: PluginStatus;
 	var unsubscribes: (() => void)[] = [];
-  var pluginConfiguration: PluginConfiguration = <PluginConfiguration>{};
   var activeTaskNames: string[] = [];
 
   const plugin: SKPlugin = {
@@ -108,7 +108,7 @@ module.exports = function(app: any) {
         app.debug(`using configuration: ${JSON.stringify(pluginConfiguration, null, 2)}`);
 
         if (pluginConfiguration.tasks.length > 0) {
-          pluginStatus = new PluginStatus(app, `Started: scheduling ${pluginConfiguration.tasks.length} tasks`);
+          pluginStatus = new PluginStatus(app, `Scheduling ${pluginConfiguration.tasks.length} task${(pluginConfiguration.tasks.length == 1)?'':'s'}`);
           unsubscribes = pluginConfiguration.tasks.reduce((a: any, task: Task) => {
             // Get a trigger stream for the task controlpath that deals
             // with switch and notification triggers.
@@ -133,7 +133,7 @@ module.exports = function(app: any) {
                   if (childProcess != null) childProcess.send({ "action": "STOP" });
                   break;
                 default:
-                  pluginStatus.setStatus(`Ignoring invalid start task request '${state}'on task '${task.name}'`);
+                  app.debug(`ignoring invalid start task request '${state}'on task '${task.name}'`);
                   break
               }
             }));

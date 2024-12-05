@@ -85,9 +85,9 @@ const ACTIVITY_NAME_DEFAULT = 'activity';
 const ACTIVITY_DELAY_DEFAULT = 0;
 const ACTIVITY_REPEAT_DEFAULT = 1;
 module.exports = function (app) {
+    var pluginConfiguration;
     var pluginStatus;
     var unsubscribes = [];
-    var pluginConfiguration = {};
     var activeTaskNames = [];
     const plugin = {
         id: PLUGIN_ID,
@@ -100,7 +100,7 @@ module.exports = function (app) {
                 pluginConfiguration = makePluginConfiguration(options);
                 app.debug(`using configuration: ${JSON.stringify(pluginConfiguration, null, 2)}`);
                 if (pluginConfiguration.tasks.length > 0) {
-                    pluginStatus = new signalk_libpluginstatus_1.PluginStatus(app, `Started: scheduling ${pluginConfiguration.tasks.length} tasks`);
+                    pluginStatus = new signalk_libpluginstatus_1.PluginStatus(app, `Scheduling ${pluginConfiguration.tasks.length} task${(pluginConfiguration.tasks.length == 1) ? '' : 's'}`);
                     unsubscribes = pluginConfiguration.tasks.reduce((a, task) => {
                         // Get a trigger stream for the task controlpath that deals
                         // with switch and notification triggers.
@@ -125,7 +125,7 @@ module.exports = function (app) {
                                         childProcess.send({ "action": "STOP" });
                                     break;
                                 default:
-                                    pluginStatus.setStatus(`Ignoring invalid start task request '${state}'on task '${task.name}'`);
+                                    app.debug(`ignoring invalid start task request '${state}'on task '${task.name}'`);
                                     break;
                             }
                         }));
