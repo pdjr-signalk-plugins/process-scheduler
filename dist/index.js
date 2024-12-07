@@ -190,12 +190,11 @@ module.exports = function (app) {
                     throw new Error("missing activity 'path' property");
                 if (!activityOptions.duration)
                     throw new Error("missing 'duration' property");
-                var activity = {
-                    name: `${task.name}[` + `${(activityOptions.name !== undefined) ? activityOptions.name : ACTIVITY_NAME_DEFAULT}-${activityindex++}` + ']',
-                    delay: (activityOptions.delay !== undefined) ? activityOptions.delay : ACTIVITY_DELAY_DEFAULT,
-                    repeat: (activityOptions.repeat !== undefined) ? activityOptions.repeat : ACTIVITY_REPEAT_DEFAULT,
-                    duration: activityOptions.duration
-                };
+                var activity = {};
+                activity.name = `${task.name}[` + `${(activityOptions.name !== undefined) ? activityOptions.name : ACTIVITY_NAME_DEFAULT}-${activityindex++}` + ']';
+                activity.delay = (activityOptions.delay !== undefined) ? activityOptions.delay : ACTIVITY_DELAY_DEFAULT;
+                activity.repeat = (activityOptions.repeat !== undefined) ? activityOptions.repeat : ACTIVITY_REPEAT_DEFAULT;
+                activity.duration = activityOptions.duration;
                 if ((matches = activityOptions.path.match(/^(notifications\..*)\:(.*)\:(.*)$/)) && (matches.length == 4)) {
                     activity.path = matches[1];
                     activity.onValue = matches[2];
