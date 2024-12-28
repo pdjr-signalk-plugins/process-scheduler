@@ -84,7 +84,6 @@ const PLUGIN_UISCHEMA = {};
 const CHILD_TASK_FILENAME = 'task.js';
 module.exports = function (app) {
     var pluginConfiguration;
-    var pluginStatus;
     var unsubscribes = [];
     var activeTaskNames = [];
     const plugin = {
@@ -94,7 +93,7 @@ module.exports = function (app) {
         schema: PLUGIN_SCHEMA,
         uiSchema: PLUGIN_UISCHEMA,
         start: function (options) {
-            pluginStatus = new signalk_libpluginstatus_1.PluginStatus(app, '');
+            var pluginStatus = new signalk_libpluginstatus_1.PluginStatus(app, '');
             try {
                 pluginConfiguration = makePluginConfiguration(options);
                 app.debug(`using configuration: ${JSON.stringify(pluginConfiguration, null, 2)}`);

@@ -87,7 +87,6 @@ const CHILD_TASK_FILENAME = 'task.js';
 
 module.exports = function(app: any) {
   var pluginConfiguration: PluginConfiguration;
-  var pluginStatus: PluginStatus;
 	var unsubscribes: (() => void)[] = [];
   var activeTaskNames: string[] = [];
 
@@ -99,7 +98,7 @@ module.exports = function(app: any) {
     uiSchema: PLUGIN_UISCHEMA,
   
 	  start: function(options: any) {
-      pluginStatus = new PluginStatus(app, '');
+      var pluginStatus = new PluginStatus(app, '');
 
       try {
         pluginConfiguration = makePluginConfiguration(options);
