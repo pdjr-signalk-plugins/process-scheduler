@@ -21,8 +21,7 @@ export class Task {
     if (!TaskOptions.controlPath) throw new Error("missing 'controlPath' property");
 
     this.name = TaskOptions.name;
-
-    this.controlPath = TaskOptions.controlPath;  
+    this.controlPath = TaskOptions.controlPath;
     if ((matches = TaskOptions.controlPath.match(/^notifications\.(.*)\:(.*)$/)) && (matches.length == 3)) {
       this.controlPathObject.type = 'notification';
       this.controlPathObject.path = `notifications.${matches[1]}`;
@@ -44,37 +43,37 @@ export class Task {
     if ((!TaskOptions.activities) || (!Array.isArray(TaskOptions.activities)) || (TaskOptions.activities.length == 0)) throw new Error("missing 'activities' array property");
     var activityindex = 0;
     this.activities = TaskOptions.activities.reduce((a: Activity[], activityOption: any) => {
-    if (!activityOption.path) throw new Error("missing activity 'path' property");
-    if (!activityOption.duration) throw new Error("missing 'duration' property");
-    var activity: Activity = <Activity>{};
-    activity.name = `${this.name}[` + `${(activityOption.name !== undefined)?activityOption.name:Task.ACTIVITY_NAME_DEFAULT}-${activityindex++}` + ']';
-    activity.delay = (activityOption.delay !== undefined)?activityOption.delay:Task.ACTIVITY_DELAY_DEFAULT;
-    activity.repeat = (activityOption.repeat !== undefined)?activityOption.repeat:Task.ACTIVITY_REPEAT_DEFAULT;
-    activity.duration = activityOption.duration;
-    if ((matches = activityOption.path.match(/^(notifications\..*)\:(.*)\:(.*)$/)) && (matches.length == 4)) {
-      activity.path = matches[1];
-      activity.onValue = matches[2];
-      activity.offValue = matches[3];
-    } else if ((matches = activityOption.path.match(/^(notifications\..*)\:(.*)$/)) && (matches.length == 3)) {
-      activity.path = matches[1];
-      activity.onValue = matches[2];
-      activity.offValue = undefined;
-    } else if ((matches = activityOption.path.match(/^(notifications\..*)$/)) && (matches.length == 2)) {
-      activity.path = matches[1];
-      activity.onValue = 'normal';
-      activity.offValue = undefined;
-    } else if ((matches = activityOption.path.match(/^(.*)\:(.*)\:(.*)$/)) && (matches.length == 4)) {
-      activity.path = matches[1];
-      activity.onValue = matches[2];
-      activity.offValue = matches[3];
-    } else if ((matches = activityOption.path.match(/^(.*)$/)) && (matches.length == 2)) {
-      activity.path = matches[1];
-      activity.onValue = 1;
-      activity.offValue = 0;
-    } else throw new Error("invalid activity control 'path' property");
-    a.push(activity);
-    return(a);
-  }, []);
+      if (!activityOption.path) throw new Error("missing activity 'path' property");
+      if (!activityOption.duration) throw new Error("missing 'duration' property");
+      var activity: Activity = <Activity>{};
+      activity.name = `${this.name}[` + `${(activityOption.name !== undefined)?activityOption.name:Task.ACTIVITY_NAME_DEFAULT}-${activityindex++}` + ']';
+      activity.delay = (activityOption.delay !== undefined)?activityOption.delay:Task.ACTIVITY_DELAY_DEFAULT;
+      activity.repeat = (activityOption.repeat !== undefined)?activityOption.repeat:Task.ACTIVITY_REPEAT_DEFAULT;
+      activity.duration = activityOption.duration;
+      if ((matches = activityOption.path.match(/^(notifications\..*)\:(.*)\:(.*)$/)) && (matches.length == 4)) {
+        activity.path = matches[1];
+        activity.onValue = matches[2];
+        activity.offValue = matches[3];
+      } else if ((matches = activityOption.path.match(/^(notifications\..*)\:(.*)$/)) && (matches.length == 3)) {
+        activity.path = matches[1];
+        activity.onValue = matches[2];
+        activity.offValue = undefined;
+      } else if ((matches = activityOption.path.match(/^(notifications\..*)$/)) && (matches.length == 2)) {
+        activity.path = matches[1];
+        activity.onValue = 'normal';
+        activity.offValue = undefined;
+      } else if ((matches = activityOption.path.match(/^(.*)\:(.*)\:(.*)$/)) && (matches.length == 4)) {
+        activity.path = matches[1];
+        activity.onValue = matches[2];
+        activity.offValue = matches[3];
+      } else if ((matches = activityOption.path.match(/^(.*)$/)) && (matches.length == 2)) {
+        activity.path = matches[1];
+        activity.onValue = 1;
+        activity.offValue = 0;
+      } else throw new Error("invalid activity control 'path' property");
+      a.push(activity);
+      return(a);
+    }, []);
   }
 
 }
