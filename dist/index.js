@@ -94,11 +94,12 @@ module.exports = function (app) {
         schema: PLUGIN_SCHEMA,
         uiSchema: PLUGIN_UISCHEMA,
         start: function (options) {
+            pluginStatus = new signalk_libpluginstatus_1.PluginStatus(app, '');
             try {
                 pluginConfiguration = makePluginConfiguration(options);
                 app.debug(`using configuration: ${JSON.stringify(pluginConfiguration, null, 2)}`);
                 if (pluginConfiguration.tasks.length > 0) {
-                    pluginStatus = new signalk_libpluginstatus_1.PluginStatus(app, `Scheduling ${pluginConfiguration.tasks.length} task${(pluginConfiguration.tasks.length == 1) ? '' : 's'}`);
+                    pluginStatus.setDefaultStatus(`Scheduling ${pluginConfiguration.tasks.length} task${(pluginConfiguration.tasks.length == 1) ? '' : 's'}`);
                     unsubscribes = pluginConfiguration.tasks.reduce((a, task) => {
                         // Get a trigger stream for the task controlpath that deals
                         // with switch and notification triggers.
