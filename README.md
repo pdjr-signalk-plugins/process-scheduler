@@ -1,8 +1,8 @@
-# pdjr-skplugin-process-scheduler
+# pdjr-process-scheduler
 
 ## Description
 
-**pdjr-skplugin-process-scheduler** implements a simple process
+**pdjr-process-scheduler** implements a simple process
 scheduler which manages the operation of an arbitrary number of user
 defined *task*s.
 

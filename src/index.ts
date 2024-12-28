@@ -21,7 +21,7 @@ import { PluginStatus } from 'signalk-libpluginstatus';
 import { Task } from './Task';
 
 const PLUGIN_ID: string = "process-scheduler"
-const PLUGIN_NAME: string = "pdjr-skplugin-process-scheduler"
+const PLUGIN_NAME: string = "pdjr-process-scheduler"
 const PLUGIN_DESCRIPTION: string = "Simple process scheduling"
 const PLUGIN_SCHEMA: object = {
   "type": "object",

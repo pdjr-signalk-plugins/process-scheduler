@@ -20,7 +20,7 @@ const signalk_libdelta_1 = require("signalk-libdelta");
 const signalk_libpluginstatus_1 = require("signalk-libpluginstatus");
 const Task_1 = require("./Task");
 const PLUGIN_ID = "process-scheduler";
-const PLUGIN_NAME = "pdjr-skplugin-process-scheduler";
+const PLUGIN_NAME = "pdjr-process-scheduler";
 const PLUGIN_DESCRIPTION = "Simple process scheduling";
 const PLUGIN_SCHEMA = {
     "type": "object",
