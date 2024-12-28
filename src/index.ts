@@ -141,7 +141,7 @@ module.exports = function(app: any) {
         }
       } catch(e: any) {
         pluginStatus.setDefaultStatus('Stopped: bad or missing plugin configuration');
-        app.debug(`${e}`);
+        app.debug(`${JSON.stringify(e)}`);
       }
     },
 
