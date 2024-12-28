@@ -136,7 +136,7 @@ module.exports = function (app) {
             }
             catch (e) {
                 pluginStatus.setDefaultStatus('Stopped: bad or missing plugin configuration');
-                app.debug(`${e.message}`);
+                app.debug(`${e.lineNumber} ${e.message}`);
             }
         },
         stop: function () {
