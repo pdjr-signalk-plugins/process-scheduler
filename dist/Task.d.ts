@@ -8,7 +8,7 @@ export declare class Task {
     controlPathObject: ControlPathObject;
     activities: Activity[];
     triggerEventStream: EventStream<string | number | undefined> | undefined;
-    constructor(options: any);
+    constructor(TaskOptions: any);
 }
 interface ControlPathObject {
     type?: string;

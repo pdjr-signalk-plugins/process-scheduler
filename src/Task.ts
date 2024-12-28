@@ -14,36 +14,36 @@ export class Task {
 
   triggerEventStream: EventStream<string | number | undefined> | undefined = undefined;
 
-  constructor(options: any) {
+  constructor(TaskOptions: any) {
     var matches: RegExpMatchArray | null;
 
-    if (!options.name) throw new Error("missing 'name' property");
-    if (!options.controlPath) throw new Error("missing 'controlPath' property");
+    if (!TaskOptions.name) throw new Error("missing 'name' property");
+    if (!TaskOptions.controlPath) throw new Error("missing 'controlPath' property");
 
-    this.name = options.name;
+    this.name = TaskOptions.name;
 
-    this.controlPath = options.controlPath;  
-    if ((matches = options.controlPath.match(/^notifications\.(.*)\:(.*)$/)) && (matches.length == 3)) {
+    this.controlPath = TaskOptions.controlPath;  
+    if ((matches = TaskOptions.controlPath.match(/^notifications\.(.*)\:(.*)$/)) && (matches.length == 3)) {
       this.controlPathObject.type = 'notification';
       this.controlPathObject.path = `notifications.${matches[1]}`;
       this.controlPathObject.onValue = matches[2];
-    } else if ((matches = options.controlPath.match(/^notifications\.(.*)$/)) && (matches.length == 2)) {
+    } else if ((matches = TaskOptions.controlPath.match(/^notifications\.(.*)$/)) && (matches.length == 2)) {
       this.controlPathObject.type = 'notification';
       this.controlPathObject.path = `notifications.${matches[1]}`;
       this.controlPathObject.onValue = undefined;
-    } else if (matches = options.controlPath.match(/^(.*):(.*)$/)) {
+    } else if (matches = TaskOptions.controlPath.match(/^(.*):(.*)$/)) {
       this.controlPathObject.type = 'switch';
       this.controlPathObject.path = matches[1];
       this.controlPathObject.onValue = matches[2];
-    } else if (matches = options.controlPath.match(/^(.*)$/)) {
+    } else if (matches = TaskOptions.controlPath.match(/^(.*)$/)) {
       this.controlPathObject.type = 'switch';
       this.controlPathObject.path = matches[1];
       this.controlPathObject.onValue = 1;
     } else throw new Error ("invalid 'controlPath' property");
 
-    if ((!options.activities) || (!Array.isArray(options.activities)) || (options.activities.length == 0)) throw new Error("missing 'activities' array property");
+    if ((!TaskOptions.activities) || (!Array.isArray(TaskOptions.activities)) || (TaskOptions.activities.length == 0)) throw new Error("missing 'activities' array property");
     var activityindex = 0;
-    this.activities = options.activities.reduce((a: Activity[], activityOption: any) => {
+    this.activities = TaskOptions.activities.reduce((a: Activity[], activityOption: any) => {
     if (!activityOption.path) throw new Error("missing activity 'path' property");
     if (!activityOption.duration) throw new Error("missing 'duration' property");
     var activity: Activity = <Activity>{};

@@ -136,7 +136,7 @@ module.exports = function (app) {
             }
             catch (e) {
                 pluginStatus.setDefaultStatus('Stopped: bad or missing plugin configuration');
-                app.setPluginError(`${e.message}`);
+                app.debug(`${e.message}`);
             }
         },
         stop: function () {
@@ -145,7 +145,7 @@ module.exports = function (app) {
         }
     };
     function makePluginConfiguration(options) {
-        return ((options.tasks || []).map((option) => new Task_1.Task(option)));
+        return ((options.tasks || []).map((taskOptions) => new Task_1.Task(taskOptions)));
     }
     function createTriggerStream(controlPathObject) {
         var stream = app.streambundle.getSelfStream(controlPathObject.path);
