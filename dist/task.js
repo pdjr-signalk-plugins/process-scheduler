@@ -1,71 +1,88 @@
-var timeout = null;
-var myActivities = null;
-var currentActivity = null;
-
-/**
- * Start or stop execution of the sequence of activities that make up
- * a task. The message contains an <action> (either 'START' or 'STOP')
- * and an array of <activities>. 
- */
-process.on('message', (message) => {
-  switch (message.action) {
-    case "START":
-      myActivities = message.activities;
-      currentActivity = -1;
-      launchActivity();
-      break;
-    case "STOP":
-      if (timeout != null) { clearTimeout(timeout); timeout = null; }
-      if ((myActivities != null) && (currentActivity != -1)) process.send({ "action": 0, "activity": myActivities[currentActivity] });
-      currentActivity = -1;
-      break;
-  }
-        // If the just terminated activity wasn't the "END" activity then
-        // execute any activity called "END".
-        //if (name != "END") {
-            // If there is an activity called "END", then execute it.
-            //var endactivities = message.activities.filter(a => (a.name == "END"));
-            //if (endactivities.length == 1) executeActivity(endactivities[0]);
-        //}
-});
-
-/**
- * Execute the next activity in the activities list by bumping the
- * currentActivity index and calling executeActivity. This function is
- * passed as a callback so that executeActivity can daisy chain the
- * next activity as it exits. 
- */
-function launchActivity() {
-  currentActivity++;
-  if (currentActivity < myActivities.length) {
-    executeActivity(launchActivity);
-  } else {
-    currentActivity = -1;
-  }
-}
-
-/**
- * Executes <activity> by sleeping for the defined delay period before calling
- * the parent process with a start action request.  Then sleep for the defined
- * duration before calling the parent process with a stop action request.
- * Iterate this as many times a is requested.
- *
- * activity: the activity { name, path, delay, duration, iterate }
- */ 
-async function executeActivity(callback) {
-  for (var i = 0; ((currentActivity != null) && ((myActivities[currentActivity].repeat == 0) || (i < myActivities[currentActivity].repeat))); i++) {
-    if (currentActivity != null) {
-      if (myActivities[currentActivity].delay > 0) await sleep(myActivities[currentActivity].delay * 1000);
-      if (currentActivity != null) {
-        process.send({ "action": 1, "activity": myActivities[currentActivity] });
-        if (myActivities[currentActivity].duration > 0) await sleep(myActivities[currentActivity].duration * 1000);
-        process.send({ "action": 0, "activity": myActivities[currentActivity] });
-      }
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Task = void 0;
+class Task {
+    constructor(options) {
+        this.name = '';
+        this.controlPath = '';
+        this.controlPathObject = {};
+        this.activities = [];
+        this.triggerEventStream = undefined;
+        var matches;
+        if (!options.name)
+            throw new Error("missing 'name' property");
+        if (!options.controlPath)
+            throw new Error("missing 'controlPath' property");
+        this.name = options.name;
+        this.controlPath = options.controlPath;
+        if ((matches = options.controlPath.match(/^notifications\.(.*)\:(.*)$/)) && (matches.length == 3)) {
+            this.controlPathObject.type = 'notification';
+            this.controlPathObject.path = `notifications.${matches[1]}`;
+            this.controlPathObject.onValue = matches[2];
+        }
+        else if ((matches = options.controlPath.match(/^notifications\.(.*)$/)) && (matches.length == 2)) {
+            this.controlPathObject.type = 'notification';
+            this.controlPathObject.path = `notifications.${matches[1]}`;
+            this.controlPathObject.onValue = undefined;
+        }
+        else if (matches = options.controlPath.match(/^(.*):(.*)$/)) {
+            this.controlPathObject.type = 'switch';
+            this.controlPathObject.path = matches[1];
+            this.controlPathObject.onValue = matches[2];
+        }
+        else if (matches = options.controlPath.match(/^(.*)$/)) {
+            this.controlPathObject.type = 'switch';
+            this.controlPathObject.path = matches[1];
+            this.controlPathObject.onValue = 1;
+        }
+        else
+            throw new Error("invalid 'controlPath' property");
+        if ((!options.activities) || (!Array.isArray(options.activities)) || (options.activities.length == 0))
+            throw new Error("missing 'activities' array property");
+        var activityindex = 0;
+        this.activities = options.activities.reduce((a, activityOption) => {
+            if (!activityOption.path)
+                throw new Error("missing activity 'path' property");
+            if (!activityOption.duration)
+                throw new Error("missing 'duration' property");
+            var activity = {};
+            activity.name = `${this.name}[` + `${(activityOption.name !== undefined) ? activityOption.name : Task.ACTIVITY_NAME_DEFAULT}-${activityindex++}` + ']';
+            activity.delay = (activityOption.delay !== undefined) ? activityOption.delay : Task.ACTIVITY_DELAY_DEFAULT;
+            activity.repeat = (activityOption.repeat !== undefined) ? activityOption.repeat : Task.ACTIVITY_REPEAT_DEFAULT;
+            activity.duration = activityOption.duration;
+            if ((matches = activityOption.path.match(/^(notifications\..*)\:(.*)\:(.*)$/)) && (matches.length == 4)) {
+                activity.path = matches[1];
+                activity.onValue = matches[2];
+                activity.offValue = matches[3];
+            }
+            else if ((matches = activityOption.path.match(/^(notifications\..*)\:(.*)$/)) && (matches.length == 3)) {
+                activity.path = matches[1];
+                activity.onValue = matches[2];
+                activity.offValue = undefined;
+            }
+            else if ((matches = activityOption.path.match(/^(notifications\..*)$/)) && (matches.length == 2)) {
+                activity.path = matches[1];
+                activity.onValue = 'normal';
+                activity.offValue = undefined;
+            }
+            else if ((matches = activityOption.path.match(/^(.*)\:(.*)\:(.*)$/)) && (matches.length == 4)) {
+                activity.path = matches[1];
+                activity.onValue = matches[2];
+                activity.offValue = matches[3];
+            }
+            else if ((matches = activityOption.path.match(/^(.*)$/)) && (matches.length == 2)) {
+                activity.path = matches[1];
+                activity.onValue = 1;
+                activity.offValue = 0;
+            }
+            else
+                throw new Error("invalid activity control 'path' property");
+            a.push(activity);
+            return (a);
+        }, []);
     }
-  }
-  callback();
 }
-
-async function sleep(millis) {
-  return new Promise(resolve => (timeout = setTimeout(resolve, millis)));
-}
+exports.Task = Task;
+Task.ACTIVITY_NAME_DEFAULT = 'activity';
+Task.ACTIVITY_DELAY_DEFAULT = 0;
+Task.ACTIVITY_REPEAT_DEFAULT = 1;
