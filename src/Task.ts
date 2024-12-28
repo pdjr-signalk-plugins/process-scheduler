@@ -1,9 +1,18 @@
+import { EventStream } from "baconjs";
+
+
 export class Task {
 
+  static ACTIVITY_NAME_DEFAULT: string = 'activity';
+  static ACTIVITY_DELAY_DEFAULT: number = 0;
+  static ACTIVITY_REPEAT_DEFAULT: number = 1;
+  
   name: string = '';
   controlPath: string = '';
   controlPathObject: ControlPathObject = <ControlPathObject>{};
   activities: Activity[] = [];
+
+  triggerEventStream: EventStream<string | number | undefined> | undefined = undefined;
 
   constructor(options: any) {
     var matches: RegExpMatchArray | null;
@@ -38,9 +47,9 @@ export class Task {
     if (!activityOption.path) throw new Error("missing activity 'path' property");
     if (!activityOption.duration) throw new Error("missing 'duration' property");
     var activity: Activity = <Activity>{};
-    activity.name = `${this.name}[` + `${(activityOption.name !== undefined)?activityOption.name:ACTIVITY_NAME_DEFAULT}-${activityindex++}` + ']';
-    activity.delay = (activityOption.delay !== undefined)?activityOption.delay:ACTIVITY_DELAY_DEFAULT;
-    activity.repeat = (activityOption.repeat !== undefined)?activityOption.repeat:ACTIVITY_REPEAT_DEFAULT;
+    activity.name = `${this.name}[` + `${(activityOption.name !== undefined)?activityOption.name:Task.ACTIVITY_NAME_DEFAULT}-${activityindex++}` + ']';
+    activity.delay = (activityOption.delay !== undefined)?activityOption.delay:Task.ACTIVITY_DELAY_DEFAULT;
+    activity.repeat = (activityOption.repeat !== undefined)?activityOption.repeat:Task.ACTIVITY_REPEAT_DEFAULT;
     activity.duration = activityOption.duration;
     if ((matches = activityOption.path.match(/^(notifications\..*)\:(.*)\:(.*)$/)) && (matches.length == 4)) {
       activity.path = matches[1];
@@ -66,8 +75,9 @@ export class Task {
     a.push(activity);
     return(a);
   }, []);
-}
+  }
 
+}
 
 interface ControlPathObject {
   type?: string,
@@ -83,9 +93,4 @@ interface Activity {
   onValue: string | number,
   offValue: string | number | undefined,
   duration: number
-}
-
-
-
-
 }

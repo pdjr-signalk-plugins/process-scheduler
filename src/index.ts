@@ -18,6 +18,7 @@ import { EventStream } from 'baconjs';
 import { ChildProcess, fork } from 'node:child_process';
 import { Delta } from 'signalk-libdelta';
 import { PluginStatus } from 'signalk-libpluginstatus';
+import { Task } from './Task';
 
 const PLUGIN_ID: string = "process-scheduler"
 const PLUGIN_NAME: string = "pdjr-skplugin-process-scheduler"
@@ -83,10 +84,6 @@ const PLUGIN_SCHEMA: object = {
 const PLUGIN_UISCHEMA: object = {}
 
 const CHILD_TASK_FILENAME = 'task.js';
-
-const ACTIVITY_NAME_DEFAULT: string = 'activity'
-const ACTIVITY_DELAY_DEFAULT: number = 0
-const ACTIVITY_REPEAT_DEFAULT: number = 1
 
 module.exports = function(app: any) {
   var pluginConfiguration: PluginConfiguration;
@@ -155,74 +152,7 @@ module.exports = function(app: any) {
   }
 
   function makePluginConfiguration(options: any): PluginConfiguration {
-    var matches: RegExpMatchArray | null;
-    var pluginConfiguration:PluginConfiguration = <PluginConfiguration>{};
-
-    pluginConfiguration.tasks = (options.tasks || []).reduce((a: Task[], taskOptions: any) => {
-      if (!taskOptions.name) throw new Error("missing 'name' property");
-      if (!taskOptions.controlPath) throw new Error("missing 'controlPath' property");
-      var task: Task = {
-        name: taskOptions.name,
-        controlPath: taskOptions.controlPath,
-        controlPathObject: <ControlPathObject>{},
-        activities: []
-      }
-      if ((matches = taskOptions.controlPath.match(/^notifications\.(.*)\:(.*)$/)) && (matches.length == 3)) {
-        task.controlPathObject.type = 'notification';
-        task.controlPathObject.path = `notifications.${matches[1]}`;
-        task.controlPathObject.onValue = matches[2];
-      } else if ((matches = task.controlPath.match(/^notifications\.(.*)$/)) && (matches.length == 2)) {
-        task.controlPathObject.type = 'notification';
-        task.controlPathObject.path = `notifications.${matches[1]}`;
-        task.controlPathObject.onValue = undefined;
-      } else if (matches = task.controlPath.match(/^(.*):(.*)$/)) {
-        task.controlPathObject.type = 'switch';
-        task.controlPathObject.path = matches[1];
-        task.controlPathObject.onValue = matches[2];
-      } else if (matches = task.controlPath.match(/^(.*)$/)) {
-        task.controlPathObject.type = 'switch';
-        task.controlPathObject.path = matches[1];
-        task.controlPathObject.onValue = 1;
-      } else throw new Error ("invalid 'controlPath' property");
-
-      if ((!taskOptions.activities) || (!Array.isArray(taskOptions.activities)) || (taskOptions.activities.length == 0)) throw new Error("missing 'activities' array property");
-      var activityindex = 0
-      task.activities = taskOptions.activities.reduce((a: Activity[], activityOptions: any) => {
-        if (!activityOptions.path) throw new Error("missing activity 'path' property");
-        if (!activityOptions.duration) throw new Error("missing 'duration' property");
-        var activity: Activity = <Activity{};
-        activity.name = `${task.name}[` + `${(activityOptions.name !== undefined)?activityOptions.name:ACTIVITY_NAME_DEFAULT}-${activityindex++}` + ']';
-        activity.delay = (activityOptions.delay !== undefined)?activityOptions.delay:ACTIVITY_DELAY_DEFAULT;
-        activity.repeat = (activityOptions.repeat !== undefined)?activityOptions.repeat:ACTIVITY_REPEAT_DEFAULT;
-        activity.duration = activityOptions.duration;
-        if ((matches = activityOptions.path.match(/^(notifications\..*)\:(.*)\:(.*)$/)) && (matches.length == 4)) {
-          activity.path = matches[1];
-          activity.onValue = matches[2];
-          activity.offValue = matches[3];
-        } else if ((matches = activityOptions.path.match(/^(notifications\..*)\:(.*)$/)) && (matches.length == 3)) {
-          activity.path = matches[1];
-          activity.onValue = matches[2];
-          activity.offValue = undefined;
-        } else if ((matches = activityOptions.path.match(/^(notifications\..*)$/)) && (matches.length == 2)) {
-          activity.path = matches[1];
-          activity.onValue = 'normal';
-          activity.offValue = undefined;
-        } else if ((matches = activityOptions.path.match(/^(.*)\:(.*)\:(.*)$/)) && (matches.length == 4)) {
-          activity.path = matches[1];
-          activity.onValue = matches[2];
-          activity.offValue = matches[3];
-        } else if ((matches = activityOptions.path.match(/^(.*)$/)) && (matches.length == 2)) {
-          activity.path = matches[1];
-          activity.onValue = 1;
-          activity.offValue = 0;
-        } else throw new Error("invalid activity control 'path' property");
-        a.push(activity);
-        return(a);
-      }, []);
-      a.push(task);
-      return(a);
-    }, []);
-    return(pluginConfiguration);
+    return((options.tasks || []).map((option: any) => new Task(option)));
   }
 
   function createTriggerStream(controlPathObject: ControlPathObject): EventStream<number> {
@@ -311,25 +241,8 @@ interface PluginConfiguration {
   tasks: Task[]
 }
 
-interface Task {
-  name: string,
-  controlPath: string,
-  controlPathObject: ControlPathObject
-  activities: Activity[]
-}
-
 interface ControlPathObject {
   type?: string,
   path?: string,
   onValue?: string | number | undefined
-}
-
-interface Activity {
-  name: string,
-  delay: number,
-  repeat: number,
-  path: string,
-  onValue: string | number,
-  offValue: string | number | undefined,
-  duration: number
 }
