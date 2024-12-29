@@ -1,7 +1,7 @@
 {
   "name": "process-scheduler",
   "version": "2.1.0",
-  "description": "Simple process scheduling",
+  "description": "Create, manage, schedule and integrate external tasks.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "signalk-plugin-enabled-by-default": true,
