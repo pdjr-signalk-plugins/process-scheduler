@@ -1,8 +1,8 @@
-# pdjr-process-scheduler
+# process-scheduler
 
 ## Description
 
-**pdjr-process-scheduler** implements a simple process
+**process-scheduler** implements a simple process
 scheduler which manages the operation of an arbitrary number of user
 defined *task*s.
 
