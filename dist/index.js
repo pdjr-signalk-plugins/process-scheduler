@@ -113,13 +113,13 @@ module.exports = function (app) {
                                 case 1:
                                     activeTaskNames.push(task.name || '');
                                     pluginStatus.setStatus(`Starting task '${task.name}'`);
-                                    if (childProcess != null)
+                                    if ((childProcess != null) && childProcess.connected)
                                         childProcess.send({ "action": "START", "activities": task.activities });
                                     break;
                                 case 0:
                                     activeTaskNames = activeTaskNames.filter((e) => (e !== task.name));
                                     pluginStatus.setStatus(`Stopping task '${task.name}'`);
-                                    if (childProcess != null)
+                                    if ((childProcess != null) && childProcess.connected)
                                         childProcess.send({ "action": "STOP" });
                                     break;
                                 default:
