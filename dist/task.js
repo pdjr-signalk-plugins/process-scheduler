@@ -2,45 +2,46 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Task = void 0;
 class Task {
-    constructor(TaskOptions) {
+    constructor(taskOptions) {
         this.name = '';
         this.controlPath = '';
         this.controlPathObject = {};
         this.activities = [];
         this.triggerEventStream = undefined;
+        console.log(JSON.stringify(taskOptions));
         var matches;
-        if (!TaskOptions.name)
+        if (!taskOptions.name)
             throw new Error("missing 'name' property");
-        if (!TaskOptions.controlPath)
+        if (!taskOptions.controlPath)
             throw new Error("missing 'controlPath' property");
-        this.name = TaskOptions.name;
-        this.controlPath = TaskOptions.controlPath;
-        if ((matches = TaskOptions.controlPath.match(/^notifications\.(.*)\:(.*)$/)) && (matches.length == 3)) {
+        this.name = taskOptions.name;
+        this.controlPath = taskOptions.controlPath;
+        if ((matches = taskOptions.controlPath.match(/^notifications\.(.*)\:(.*)$/)) && (matches.length == 3)) {
             this.controlPathObject.type = 'notification';
             this.controlPathObject.path = `notifications.${matches[1]}`;
             this.controlPathObject.onValue = matches[2];
         }
-        else if ((matches = TaskOptions.controlPath.match(/^notifications\.(.*)$/)) && (matches.length == 2)) {
+        else if ((matches = taskOptions.controlPath.match(/^notifications\.(.*)$/)) && (matches.length == 2)) {
             this.controlPathObject.type = 'notification';
             this.controlPathObject.path = `notifications.${matches[1]}`;
             this.controlPathObject.onValue = undefined;
         }
-        else if (matches = TaskOptions.controlPath.match(/^(.*):(.*)$/)) {
+        else if (matches = taskOptions.controlPath.match(/^(.*):(.*)$/)) {
             this.controlPathObject.type = 'switch';
             this.controlPathObject.path = matches[1];
             this.controlPathObject.onValue = matches[2];
         }
-        else if (matches = TaskOptions.controlPath.match(/^(.*)$/)) {
+        else if (matches = taskOptions.controlPath.match(/^(.*)$/)) {
             this.controlPathObject.type = 'switch';
             this.controlPathObject.path = matches[1];
             this.controlPathObject.onValue = 1;
         }
         else
             throw new Error("invalid 'controlPath' property");
-        if ((!TaskOptions.activities) || (!Array.isArray(TaskOptions.activities)) || (TaskOptions.activities.length == 0))
+        if ((!taskOptions.activities) || (!Array.isArray(taskOptions.activities)) || (taskOptions.activities.length == 0))
             throw new Error("missing 'activities' array property");
         var activityindex = 0;
-        this.activities = TaskOptions.activities.reduce((a, activityOption) => {
+        this.activities = taskOptions.activities.reduce((a, activityOption) => {
             if (!activityOption.path)
                 throw new Error("missing activity 'path' property");
             if (!activityOption.duration)
