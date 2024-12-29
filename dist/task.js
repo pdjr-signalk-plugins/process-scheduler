@@ -8,7 +8,6 @@ class Task {
         this.controlPathObject = {};
         this.activities = [];
         this.triggerEventStream = undefined;
-        console.log(JSON.stringify(taskOptions));
         var matches;
         if (!taskOptions.name)
             throw new Error("missing 'name' property");

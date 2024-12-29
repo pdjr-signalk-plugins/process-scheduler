@@ -15,7 +15,6 @@ export class Task {
   triggerEventStream: EventStream<string | number | undefined> | undefined = undefined;
 
   constructor(taskOptions: any) {
-    console.log(JSON.stringify(taskOptions));
     var matches: RegExpMatchArray | null;
 
     if (!taskOptions.name) throw new Error("missing 'name' property");
