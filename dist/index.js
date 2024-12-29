@@ -145,7 +145,9 @@ module.exports = function (app) {
         }
     };
     function makePluginConfiguration(options) {
-        return ((options.tasks || []).map((taskOptions) => new Task_1.Task(taskOptions)));
+        return ({
+            tasks: (options.tasks || []).map((taskOptions) => new Task_1.Task(taskOptions))
+        });
     }
     function createTriggerStream(controlPathObject) {
         var stream = app.streambundle.getSelfStream(controlPathObject.path);

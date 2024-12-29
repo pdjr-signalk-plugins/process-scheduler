@@ -152,7 +152,9 @@ module.exports = function(app: any) {
   }
 
   function makePluginConfiguration(options: any): PluginConfiguration {
-    return((options.tasks || []).map((taskOptions: any) => new Task(taskOptions)));
+    return({
+      tasks: (options.tasks || []).map((taskOptions: any) => new Task(taskOptions))
+    });
   }
 
   function createTriggerStream(controlPathObject: ControlPathObject): EventStream<number> {
