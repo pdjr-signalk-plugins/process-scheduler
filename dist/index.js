@@ -164,7 +164,7 @@ module.exports = function (app) {
                 }
                 break;
             default:
-                return (stream.map((from) => ((from.state == controlPathObject.onValue) ? 1 : 0)));
+                return (stream.map((from) => ((from == controlPathObject.onValue) ? 1 : 0)));
                 break;
         }
     }
