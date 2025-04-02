@@ -159,6 +159,7 @@ module.exports = function(app: any) {
   }
 
   function createTriggerStream(controlPathObject: ControlPathObject): EventStream<number> {
+    app.debug(`creating trigger stream from ${JSON.stringify(controlPathObject)}`);
     var stream: EventStream<string | number | undefined> = app.streambundle.getSelfStream(controlPathObject.path);
     switch (controlPathObject.type) {
       case 'notification':
