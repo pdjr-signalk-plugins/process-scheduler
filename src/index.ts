@@ -83,7 +83,7 @@ const PLUGIN_SCHEMA: object = {
 }
 const PLUGIN_UISCHEMA: object = {}
 
-const CHILD_TASK_FILENAME = 'task.js';
+const CHILD_TASK_FILENAME = 'task-process.js';
 
 module.exports = function(app: any) {
   var pluginConfiguration: PluginConfiguration;

@@ -1,6 +1,5 @@
 import { EventStream } from "baconjs";
 
-
 export class Task {
 
   static ACTIVITY_NAME_DEFAULT: string = 'activity';

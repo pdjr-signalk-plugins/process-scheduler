@@ -81,7 +81,7 @@ const PLUGIN_SCHEMA = {
     "required": ["tasks"]
 };
 const PLUGIN_UISCHEMA = {};
-const CHILD_TASK_FILENAME = 'task.js';
+const CHILD_TASK_FILENAME = 'task-process.js';
 module.exports = function (app) {
     var pluginConfiguration;
     var unsubscribes = [];
