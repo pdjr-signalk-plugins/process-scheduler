@@ -109,7 +109,7 @@ module.exports = function (app) {
                         // activities and respond by sending appropriate control
                         // messages to the child process.
                         a.push(triggerStream.skipDuplicates().onValue((state) => {
-                            app.debug(`processing value ${state} on task ${task.name}`);
+                            //app.debug(`processing value ${state} on task ${task.name}`);
                             switch (state) {
                                 case 1:
                                     activeTaskNames.push(task.name || '');
@@ -151,9 +151,7 @@ module.exports = function (app) {
         });
     }
     function createTriggerStream(controlPathObject) {
-        app.debug(`creating trigger stream from ${JSON.stringify(controlPathObject)}`);
         var stream = app.streambundle.getSelfStream(controlPathObject.path);
-        stream = stream.doAction((v) => { app.debug(`got a value ${v}`); });
         switch (controlPathObject.type) {
             case 'notification':
                 if (controlPathObject.onValue === undefined) {
