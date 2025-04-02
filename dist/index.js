@@ -160,7 +160,7 @@ module.exports = function (app) {
                     return (stream.map((from) => (from !== null) ? 1 : 0));
                 }
                 else {
-                    return (stream.map((from) => ((from.state == controlPathObject.onValue) ? 1 : 0)));
+                    return (stream.map((from) => ((from == controlPathObject.onValue) ? 1 : 0)));
                 }
                 break;
             default:
