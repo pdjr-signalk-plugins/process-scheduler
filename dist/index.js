@@ -153,6 +153,7 @@ module.exports = function (app) {
     function createTriggerStream(controlPathObject) {
         app.debug(`creating trigger stream from ${JSON.stringify(controlPathObject)}`);
         var stream = app.streambundle.getSelfStream(controlPathObject.path);
+        stream = stream.doAction(app.debug('got a value'));
         switch (controlPathObject.type) {
             case 'notification':
                 if (controlPathObject.onValue === undefined) {
