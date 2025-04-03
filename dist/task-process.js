@@ -69,7 +69,3 @@ async function executeActivity(callback) {
 async function sleep(millis) {
   return new Promise(resolve => (timeout = setTimeout(resolve, millis)));
 }
-~                                                                                                                                                                                                                                             
-~                                                                                                                                                                                                                                             
-~                                                                                                                                                                                                                                             
-~                                                                
