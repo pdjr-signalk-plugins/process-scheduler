@@ -108,7 +108,7 @@ module.exports = function (app) {
                         // arrival of values saying whether to start or stop task
                         // activities and respond by sending appropriate control
                         // messages to the child process.
-                        a.push(triggerStream.skipDuplicates().onValue((state) => {
+                        a.push(triggerStream.skipDuplicates().doAction((v) => { app.debug(`processing trigger value ${v}`); }).onValue((state) => {
                             //app.debug(`processing value ${state} on task ${task.name}`);
                             switch (state) {
                                 case 1:
@@ -155,14 +155,14 @@ module.exports = function (app) {
         switch (controlPathObject.type) {
             case 'notification':
                 if (controlPathObject.onValue === undefined) {
-                    return (stream.map((from) => (from !== null) ? 1 : 0));
+                    return (stream.map((streamValue) => (streamValue !== null) ? 1 : 0));
                 }
                 else {
-                    return (stream.map((from) => ((from == controlPathObject.onValue) ? 1 : 0)));
+                    return (stream.map((streamValue) => ((streamValue == controlPathObject.onValue) ? 1 : 0)));
                 }
                 break;
             default:
-                return (stream.map((from) => ((from == controlPathObject.onValue) ? 1 : 0)));
+                return (stream.map((streamValue) => ((streamValue == controlPathObject.onValue) ? 1 : 0)));
                 break;
         }
     }
