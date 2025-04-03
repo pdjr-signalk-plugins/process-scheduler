@@ -100,6 +100,7 @@ module.exports = function (app) {
                 if (pluginConfiguration.tasks.length > 0) {
                     pluginStatus.setDefaultStatus(`Scheduling ${pluginConfiguration.tasks.length} task${(pluginConfiguration.tasks.length == 1) ? '' : 's'}`);
                     unsubscribes = pluginConfiguration.tasks.reduce((a, task) => {
+                        console.log(`${plugin.id}: starting task ${task.name} triggered by ${task.controlPath}`);
                         // Get a trigger stream for the task controlpath that deals
                         // with switch and notification triggers.
                         var triggerStream = createTriggerStream(task.controlPathObject);
@@ -109,7 +110,6 @@ module.exports = function (app) {
                         // activities and respond by sending appropriate control
                         // messages to the child process.
                         a.push(triggerStream.skipDuplicates().doAction((v) => { app.debug(`processing trigger value ${v}`); }).onValue((state) => {
-                            //app.debug(`processing value ${state} on task ${task.name}`);
                             switch (state) {
                                 case 1:
                                     activeTaskNames.push(task.name || '');

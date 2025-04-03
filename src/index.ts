@@ -107,6 +107,7 @@ module.exports = function(app: any) {
         if (pluginConfiguration.tasks.length > 0) {
           pluginStatus.setDefaultStatus(`Scheduling ${pluginConfiguration.tasks.length} task${(pluginConfiguration.tasks.length == 1)?'':'s'}`);
           unsubscribes = pluginConfiguration.tasks.reduce((a: any, task: Task) => {
+            console.log(`${plugin.id}: starting task ${task.name} triggered by ${task.controlPath}`);
             // Get a trigger stream for the task controlpath that deals
             // with switch and notification triggers.
             var triggerStream: EventStream<number> = createTriggerStream(task.controlPathObject);
