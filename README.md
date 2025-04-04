@@ -2,29 +2,27 @@
 
 ## Description
 
-**process-scheduler** implements a simple process
-scheduler which manages the operation of an arbitrary number of user
-defined *task*s.
+**process-scheduler** manages the operation of an arbitrary number
+of user defined *task*s each of which is made up of a collection of
+sequentially executed, timed, perhaps repeating, activities.
 
-A task is made up of a collection of sequentially executed, timed,
-perhaps repeating, activities.
 Each activity updates the Signal K state by modulating a key value
 when it commences and when it terminates.
 
-Each *task* is triggered and will continue to operate whilst some
-specified value is maintained on a Signal K key configured as its
-*task control path*.
+Each *task* is started by a state change on a key value and will
+continue to operate whilst this trigger value is maintained.
 
 ## Example application
+
 My ship has an electrical lubrication pump that delivers grease
 directly to the propeller shaft bearing.
 I want to ensure that the bearing is well greased at the beginning
 of every voyage and lightly greased periodically during the voyage.
 
-This requirement is met by a 'lubrication' task consisting of two
-activities: a 'start' activity which runs once when the main engine is
-fired up and a subsequent 'iterate' activity which runs repeatedly for
-as long as the engine is running.
+This requirement is met by a 'shaft-lubrication' task consisting of
+two activities: a 'start' activity which runs once when the main engine
+is fired up and a subsequent 'iterate' activity which runs repeatedly
+for as long as the engine is running.
 The output of both activities is used to control the operation of the
 shaft lubrication pump.
 
@@ -82,8 +80,8 @@ looks like this.
     <p>
     When the value on the specified *path* becomes equal to *trigger*
     (or to 1 if *trigger* is not supplied) then the associated task will
-    start, stopping if and when the value on *path* no longer matches
-    *trigger*.
+    start, stopping if and when the trigger value on *path* no longer
+    maintained.
     <p>
     Here are some examples of valid *controlPath*s.
     <p>
@@ -123,7 +121,7 @@ looks like this.
       If *offState* is omitted, then *path* will be set to null when
       the activity stops and otherwise to *offState*.
       If both *onState* and *offState* are omitted then they will
-      normally default to 1 and 0 respectively.
+      default to 1 and 0 respectively.
       <p>
       Here are some examples of valid *processControlPath*s.
       <p>
@@ -151,8 +149,8 @@ looks like this.
       </dd>
       <dt>Delay start event by this many seconds (*delay*)</dt>
       <dd>
-      Number of seconds between the activity being started and the
-      issuing of a start event.
+      Number of seconds between the activity being triggered and it
+      actually being started.
       </dd>
       <dt>How many times to repeat (*iterate*)</dt>
       <dd>
