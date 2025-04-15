@@ -4,18 +4,19 @@
 
 **process-scheduler** manages the operation of an arbitrary number
 of user defined *task*s each of which is made up of a collection of
-sequentially executed, timed, perhaps repeating, activities.
+sequentially executed, timed, perhaps repeating, *activities*.
 
-Each activity updates the Signal K state by modulating a key value
-when it commences and when it terminates.
+A task is started by a state change on a key value and will continue
+to operate whilst this trigger value is maintained.
 
-Each *task* is started by a state change on a key value and will
-continue to operate whilst this trigger value is maintained.
+Within a task, activities are executed sequentially and update the
+Signal K state by modulating a key value as they commences and when
+they terminates.
 
 ## Example application
 
-My ship has an electrical lubrication pump that delivers grease
-directly to the propeller shaft bearing.
+My ship has an electrically powered lubrication pump that delivers
+grease directly to the propeller shaft upper bearing.
 I want to ensure that the bearing is well greased at the beginning
 of every voyage and lightly greased periodically during the voyage.
 
@@ -30,7 +31,7 @@ The state of my engine ignition switch appears on the Signal K path
 'electrical.switches.bank.0.11.state' and my stern gland lubrication pump
 is operated by a relay on 'electrical.switches.bank.26.5.state'.
 
-The plugin configuration I use for handling the shaft librication task
+The plugin configuration I use for handling the shaft lubrication task
 looks like this.
 
 ```
